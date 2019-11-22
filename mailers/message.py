@@ -80,7 +80,7 @@ def _ensure_list(value: Union[str, Iterable[str]]) -> List[str]:
     if value is None:
         return []
 
-    if isinstance(value, (str,)):
+    if isinstance(value, str):
         return [value]
     return list(value)
 
@@ -238,9 +238,11 @@ class EmailMessage:
         if self.subject is not None:
             envelope.add_header("Subject", self.subject)
 
+        # RFC 822
         if self.from_address is None:
             raise BadHeaderError('"from_address" attribute was not set.')
 
+        # RFC 822
         if not len(self.to) and not len(self.bcc):
             raise BadHeaderError('Neither "to" or "bcc" attribute was not set.')
 
