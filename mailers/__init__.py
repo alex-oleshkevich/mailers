@@ -1,7 +1,7 @@
 from typing import Mapping, Optional, Union
 
 from .config import EmailURL
-from .exceptions import MailablesError
+from .exceptions import MailersError
 from .mailer import Mailer, MailerRegistry, registry
 from .message import Attachment, EmailMessage
 from .shortcuts import get_mailer, send_mail
@@ -27,7 +27,7 @@ __all__ = [
     "StreamTransport",
     "GMailTransport",
     "MailgunTransport",
-    "MailablesError",
+    "MailersError",
     "EmailMessage",
     "Attachment",
     "EmailURL",
@@ -38,7 +38,7 @@ __all__ = [
     "get_mailer",
 ]
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 def configure(

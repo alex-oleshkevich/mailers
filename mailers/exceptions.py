@@ -1,30 +1,30 @@
-class MailablesError(Exception):
+class MailersError(Exception):
     pass
 
 
-class SMTPError(MailablesError):
+class SMTPError(MailersError):
     pass
 
 
-class DependencyNotFound(MailablesError):
+class DependencyNotFound(MailersError):
     pass
 
 
-class ImproperlyConfiguredError(MailablesError):
+class ImproperlyConfiguredError(MailersError):
     pass
 
 
-class ImportFromStringError(MailablesError):
+class ImportFromStringError(MailersError):
     pass
 
 
-class NotRegisteredTransportError(MailablesError):
+class NotRegisteredTransportError(MailersError):
     pass
 
 
-class BadHeaderError(MailablesError):
+class BadHeaderError(MailersError):
     pass
 
 
-class NotRegisteredMailer(MailablesError):
+class NotRegisteredMailer(MailersError):
     pass
