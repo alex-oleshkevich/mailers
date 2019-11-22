@@ -7,7 +7,7 @@ import pytest
 
 from mailers import transports
 from mailers.config import EmailURL
-from mailers.exceptions import DependencyNotFound
+from mailers.exceptions import DependencyNotFound, ImproperlyConfiguredError
 
 
 @pytest.mark.asyncio
@@ -52,6 +52,12 @@ async def test_file_transport(message):
     backend = transports.FileTransport.from_url("file:///tmp")
     assert isinstance(backend, transports.FileTransport)
 
+    # URL must have path parameter
+    with pytest.raises(ImproperlyConfiguredError) as ex:
+        url = EmailURL("file://")
+        transports.FileTransport.from_url(url)
+    assert str(ex.value) == 'Argument "path" of FileTransport cannot be None.'
+
     tmpdir = tempfile.TemporaryDirectory()
     with tmpdir as directory:
         backend = transports.FileTransport(directory)
@@ -63,9 +69,8 @@ async def test_file_transport(message):
         with mock.patch("mailers.transports.aiofiles", None):
             with pytest.raises(DependencyNotFound) as ex:
                 transports.FileTransport(directory)
-            assert (
-                str(ex.value) == 'FileTransport requires "aiofiles" library installed.'
-            )
+            text = 'FileTransport requires "aiofiles" library installed.'
+            assert str(ex.value) == text
 
 
 @pytest.mark.asyncio

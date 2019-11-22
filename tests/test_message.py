@@ -114,6 +114,28 @@ def test_attach(message):
     assert message.attachments[0].charset == "utf8"
 
 
+def test_requires_to_or_bcc():
+    message = EmailMessage(from_address="user@localhost")
+    with pytest.raises(BadHeaderError) as ex:
+        message.build_message()
+    assert str(ex.value) == 'Neither "to" or "bcc" attribute was not set.'
+
+    # ok if "to" set
+    message = EmailMessage(to="user@localhost", from_address="user@localhost")
+    message.build_message()
+
+    # ok if "bcc" set
+    message = EmailMessage(bcc="user@localhost", from_address="user@localhost")
+    message.build_message()
+
+
+def test_requires_from_address():
+    message = EmailMessage(to="user@localhost")
+    with pytest.raises(BadHeaderError) as ex:
+        message.build_message()
+    assert str(ex.value) == '"from_address" attribute was not set.'
+
+
 def test_build_message(message: EmailMessage):
     message.date = datetime.datetime(2000, 1, 1, 0, 0, 0)
     message.from_address = "root@localhost"
@@ -148,26 +170,27 @@ def test_as_string(message):
 
 
 def test_forbid_new_lines():
-    message = EmailMessage()
+    message = EmailMessage(from_address="sender@localhost")
     message.to = "root@localhost\n"
     with pytest.raises(BadHeaderError) as ex:
         message.build_message()
 
-    assert (
-        str(ex.value) == 'Header value "root@localhost\n" contains new line characters.'
-    )
+    text = 'Header value "root@localhost\n" contains new line characters.'
+    assert str(ex.value) == text
 
-    message = EmailMessage()
+    message = EmailMessage(from_address="sender@localhost")
     message.to = "root@localhost\r"
     with pytest.raises(BadHeaderError) as ex:
         message.build_message()
-    assert (
-        str(ex.value) == 'Header value "root@localhost\r" contains new line characters.'
-    )
+
+    text = 'Header value "root@localhost\r" contains new line characters.'
+    assert str(ex.value) == text
 
 
 def test_add_part():
-    message = EmailMessage(to="root@localhost", boundary="1111111")
+    message = EmailMessage(
+        to="root@localhost", boundary="1111111", from_address="sender@localhost"
+    )
     part = MIMEText("CONTENT")
     message.add_part(part)
     assert len(message.parts) == 1

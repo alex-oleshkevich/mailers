@@ -69,8 +69,4 @@ def mailer(mailbox):
 
 @pytest.fixture(autouse=True)
 def configure_mailers(mailbox):
-    configure(
-        mailers={
-            "default": Mailer(InMemoryTransport(mailbox))
-        }
-    )
+    configure(mailers={"default": Mailer(InMemoryTransport(mailbox))})

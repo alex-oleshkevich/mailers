@@ -91,7 +91,7 @@ def _create_address(address: str, name: str = None) -> str:
     return address
 
 
-def _forbid_new_lines(value: Optional[str]) -> str:
+def _forbid_new_lines(value: str) -> str:
     if value is not None:
         if "\n" in value or "\r" in value:
             raise BadHeaderError(
@@ -108,17 +108,17 @@ class EmailMessage:
 
     def __init__(
         self,
-        to: Union[str, Iterable[str]] = None,
+        to: Union[str, List[str]] = None,
         subject: Optional[str] = None,
         text_body: Optional[str] = None,
         from_address: Optional[str] = None,
-        cc: Union[str, Iterable[str]] = None,
-        bcc: Union[str, Iterable[str]] = None,
-        reply_to: Union[str, Iterable[str]] = None,
+        cc: Union[str, List[str]] = None,
+        bcc: Union[str, List[str]] = None,
+        reply_to: Union[str, List[str]] = None,
         html_body: Optional[str] = None,
         attachments: List[Attachment] = None,
         headers: Dict[str, str] = None,
-        date: datetime.datetime = None,
+        date: Optional[datetime.datetime] = None,
         boundary: Optional[str] = None,
         charset: Optional[str] = None,
         parts: List[MIMEBase] = None,
@@ -146,7 +146,7 @@ class EmailMessage:
         return self._to
 
     @to.setter
-    def to(self, value: Union[str, List[str]]) -> None:
+    def to(self, value: Union[str, Iterable[str]]) -> None:
         self._to = _ensure_list(value)
 
     @property
@@ -237,6 +237,12 @@ class EmailMessage:
 
         if self.subject is not None:
             envelope.add_header("Subject", self.subject)
+
+        if self.from_address is None:
+            raise BadHeaderError('"from_address" attribute was not set.')
+
+        if not len(self.to) and not len(self.bcc):
+            raise BadHeaderError('Neither "to" or "bcc" attribute was not set.')
 
         envelope.add_header("From", _forbid_new_lines(self.from_address))
         envelope.add_header("To", _forbid_new_lines(", ".join(self._to)))

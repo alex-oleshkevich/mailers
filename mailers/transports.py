@@ -3,12 +3,16 @@ import datetime
 import os
 import ssl
 import sys
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, Union, cast
 
 from mailers.importer import import_from_string
 
 from .config import EmailURL
-from .exceptions import DependencyNotFound, NotRegisteredTransportError
+from .exceptions import (
+    DependencyNotFound,
+    ImproperlyConfiguredError,
+    NotRegisteredTransportError,
+)
 from .message import EmailMessage
 
 try:
@@ -34,6 +38,12 @@ class FileTransport(BaseTransport):
             raise DependencyNotFound(
                 '%s requires "aiofiles" library installed.' % self.__class__.__name__
             )
+
+        if directory is None or directory == "":
+            raise ImproperlyConfiguredError(
+                'Argument "path" of FileTransport cannot be None.'
+            )
+
         self._directory = directory
 
     async def send(self, message: EmailMessage) -> None:
@@ -70,7 +80,7 @@ class InMemoryTransport(BaseTransport):
 
     @classmethod
     def from_url(cls, *args: Any) -> "InMemoryTransport":
-        mailbox = []
+        mailbox: List[EmailMessage] = []
         return cls(mailbox)
 
 
@@ -83,21 +93,21 @@ class StreamTransport(BaseTransport):
 
 
 class ConsoleTransport(StreamTransport):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(sys.stdout)
 
 
 class SMTPTransport(BaseTransport):
     def __init__(
-            self,
-            host: str = "localhost",
-            port: int = 25,
-            user: Optional[str] = None,
-            password: Optional[str] = None,
-            use_tls: Optional[bool] = None,
-            timeout: int = 10,
-            key_file: Optional[str] = None,
-            cert_file: Optional[str] = None,
+        self,
+        host: str = "localhost",
+        port: int = 25,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
+        use_tls: Optional[bool] = None,
+        timeout: int = 10,
+        key_file: Optional[str] = None,
+        cert_file: Optional[str] = None,
     ):
         if aiosmtplib is None:
             raise DependencyNotFound(
@@ -145,8 +155,8 @@ class SMTPTransport(BaseTransport):
         cert_file = url.options.get("cert_file", None)
 
         return cls(
-            url.hostname,
-            url.port,
+            url.hostname or "localhost",
+            url.port or 25,
             url.username,
             url.password,
             use_tls=use_tls,
@@ -157,8 +167,7 @@ class SMTPTransport(BaseTransport):
 
 
 class GMailTransport(SMTPTransport):
-    def __init__(self, user: Optional[str], password: Optional[str],
-                 timeout: int = 10):
+    def __init__(self, user: Optional[str], password: Optional[str], timeout: int = 10):
         super().__init__(
             host="smtp.gmail.com",
             port=465,
@@ -171,13 +180,11 @@ class GMailTransport(SMTPTransport):
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> "GMailTransport":
         url = EmailURL(str(url) + "@default")
-        print(url.username, url.password)
         return cls(url.username, url.password)
 
 
 class MailgunTransport(SMTPTransport):
-    def __init__(self, user: Optional[str], password: Optional[str],
-                 timeout: int = 10):
+    def __init__(self, user: Optional[str], password: Optional[str], timeout: int = 10):
         super().__init__(
             host="smtp.mailgun.org",
             port=465,
@@ -194,7 +201,7 @@ class MailgunTransport(SMTPTransport):
 
 
 class Transports:
-    mapping = {
+    mapping: Dict[str, Union[str, Type[BaseTransport]]] = {
         "smtp": "mailers.transports:SMTPTransport",
         "file": "mailers.transports:FileTransport",
         "null": "mailers.transports:NullTransport",
@@ -205,14 +212,11 @@ class Transports:
     }
 
     @classmethod
-    def bind_url(
-            cls, protocol: str, factory: Union[str, EmailURL, BaseTransport]
-    ) -> None:
+    def bind_url(cls, protocol: str, factory: Union[str, Type[BaseTransport]]) -> None:
         cls.mapping[protocol] = factory
 
     @classmethod
-    def bind_urls(cls, urls: Mapping[
-        str, Union[str, EmailURL, BaseTransport]]) -> None:
+    def bind_urls(cls, urls: Mapping[str, Union[str, Type[BaseTransport]]]) -> None:
         for protocol, factory in urls.items():
             cls.bind_url(protocol, factory)
 
@@ -224,9 +228,13 @@ class Transports:
                 f'No transport found with scheme "{url.transport}".'
             )
 
-        klass_spec = cls.mapping[url.transport]
-        klass = import_from_string(klass_spec)
-        if hasattr(klass, "from_url"):
-            return klass.from_url(url)
+        klass = cls.mapping[url.transport]
+        if isinstance(klass, str):
+            klass = import_from_string(klass)
+
+        klass = cast(Type[BaseTransport], klass)
+        factory = getattr(klass, "from_url", None)
+        if factory is not None:
+            return factory(url)
 
         return klass()

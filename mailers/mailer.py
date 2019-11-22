@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Dict, Union
 
 from .config import EmailURL
 from .exceptions import NotRegisteredMailer
@@ -19,18 +19,17 @@ class Mailer:
 
 class MailerRegistry:
     def __init__(self) -> None:
-        self._mailers = {}
+        self._mailers: Dict[str, Mailer] = {}
 
     def add(self, name: str, mailer: Union[str, EmailURL, Mailer]) -> None:
+        if isinstance(mailer, (str, EmailURL)):
+            mailer = Mailer(mailer)
         self._mailers[name] = mailer
 
     def get(self, name: str) -> Mailer:
         if name not in self:
             raise NotRegisteredMailer(f'Mailer with name "{name}" not registered.')
 
-        mailer = self._mailers[name]
-        if isinstance(mailer, (str, EmailURL)):
-            self._mailers[name] = Mailer(mailer)
         return self._mailers[name]
 
     def __contains__(self, item: str) -> bool:

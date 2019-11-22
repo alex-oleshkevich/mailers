@@ -37,12 +37,7 @@ async def test_send_mail_uses_mailer_by_string(message):
 def test_get_mailer():
     sample_mailer = object()
     default_mailer = object()
-    configure(
-        mailers={
-            "default": default_mailer,
-            "sample": sample_mailer
-        }
-    )
+    configure(mailers={"default": default_mailer, "sample": sample_mailer})
 
     assert get_mailer() == default_mailer
     assert get_mailer("sample") == sample_mailer

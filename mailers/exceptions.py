@@ -10,6 +10,10 @@ class DependencyNotFound(MailablesError):
     pass
 
 
+class ImproperlyConfiguredError(MailablesError):
+    pass
+
+
 class ImportFromStringError(MailablesError):
     pass
 

@@ -38,12 +38,13 @@ __all__ = [
     "get_mailer",
 ]
 
-__version__ = '0.0.1'
+__version__ = "0.0.1"
+
 
 def configure(
-    mailers: Optional[Mapping[str, Union[str, EmailURL, Mailer]]],
+    mailers: Mapping[str, Union[str, EmailURL, Mailer]],
     transports: Optional[Mapping[str, str]] = None,
-):
+) -> None:
     for name, mailer in mailers.items():
         registry.add(name, mailer)
 

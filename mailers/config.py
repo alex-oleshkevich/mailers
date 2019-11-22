@@ -39,11 +39,11 @@ class EmailURL:
         return self.components.port
 
     @property
-    def netloc(self) -> typing.Optional[str]:
+    def netloc(self) -> str:
         return self.components.netloc
 
     @property
-    def path(self) -> typing.Optional[str]:
+    def path(self) -> str:
         return self.components.path
 
     @property
