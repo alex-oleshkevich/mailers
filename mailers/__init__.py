@@ -38,6 +38,7 @@ __all__ = [
     "get_mailer",
 ]
 
+__version__ = '0.0.1'
 
 def configure(
     mailers: Optional[Mapping[str, Union[str, EmailURL, Mailer]]],
