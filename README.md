@@ -1,3 +1,17 @@
+<p align="center">
+<a href="https://travis-ci.org/alex-oleshkevich/mailers">
+    <img src="https://api.travis-ci.com/alex-oleshkevich/mailers.svg?branch=master" alt="Build Status">
+</a>
+<a href="https://codecov.io/gh/alex-oleshkevich/mailers">
+    <img src="https://codecov.io/gh/alex-oleshkevich/mailers/branch/master/graph/badge.svg" alt="Coverage">
+</a>
+<a href="https://pypi.org/project/mailers/">
+    <img src="https://badge.fury.io/py/mailers.svg" alt="Package version">
+</a>
+</p>
+
+---
+
 # Mailers for asyncio
 
 ## Installation
