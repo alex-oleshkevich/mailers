@@ -79,10 +79,34 @@ In case you have multiple mailers, the `send_mail` shortcut accepts `mailer` arg
 send_mail(to, message, mailer='admin')
 ```
 
+When you dont't set `mailer` argument, the function will use mailer with name `default`.  
 
-### Selecting mailers
 
-When you have more 
+## Compose messages
+
+The arguments and methods of `EmailMessage ` class are self-explanatory so here is some basic example:
+
+```python
+from mailers import EmailMessage, Attachment
+
+message = EmailMessage(
+    to='user@localhost', from_address='from@example.tld', 
+    cc='cc@example.com', bcc=['bcc@example.com'], 
+    text_body='Hello world!',
+    html_body='<b>Hello world!</b>',
+    attachments=[
+        Attachment('CONTENTS', 'file.txt', 'text/plain'),    
+    ]   
+)
+```
+
+Attachments can be added on demand:
+```python
+with open('file.txt', 'r') as f:
+    message.attach(f.read(), f.name, 'text/plain')
+```
+
+`cc`, `bcc`, `to`, `reply_to` can be either string or lists of strings.
 
 ## Transports
 
