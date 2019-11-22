@@ -90,23 +90,37 @@ The arguments and methods of `EmailMessage ` class are self-explanatory so here 
 from mailers import EmailMessage, Attachment
 
 message = EmailMessage(
-    to='user@localhost', from_address='from@example.tld', 
-    cc='cc@example.com', bcc=['bcc@example.com'], 
+    to='user@localhost', 
+    from_address='from@example.tld', 
+    cc='cc@example.com', 
+    bcc=['bcc@example.com'], 
     text_body='Hello world!',
     html_body='<b>Hello world!</b>',
     attachments=[
         Attachment('CONTENTS', 'file.txt', 'text/plain'),    
     ]   
 )
-```
 
-Attachments can be added on demand:
-```python
+# attachments can be added on demand:
+
 with open('file.txt', 'r') as f:
     message.attach(f.read(), f.name, 'text/plain')
+
+    # alternatively
+    message.add_attachment(
+        Attachment(f.read(), f.name, 'text/plain')
+    )
 ```
 
-`cc`, `bcc`, `to`, `reply_to` can be either string or lists of strings.
+`cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
+
+### A note about attachments
+
+Accessing files is a blocking operation. You may want to use `aiofiles` or alternate library
+which reads files in non-blocking mode.
+
+This package does not implement direct access to files at moment. 
+This is something to do at later stage. 
 
 ## Transports
 
