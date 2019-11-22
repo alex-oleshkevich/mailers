@@ -54,6 +54,35 @@ message = EmailMessage(
 await mailer.send(message)
 ``` 
 
+### Shortcuts
+
+The packages exports some utility methods to simplify the work: `configure` and `send_mail`.
+
+`configure` methods allows to configure multiple mailers and bind URL specs at once.
+
+```python
+from mailers import configure
+
+configure(
+    mailers={
+        'default': 'smtp://localhost',
+        'admin': 'smtp://localhost'   
+    },
+    transports={
+        'myproto': 'myproto.ImplementationClass'            
+    }
+)
+``` 
+
+In case you have multiple mailers, the `send_mail` shortcut accepts `mailer` argument to specify the mailer to use:
+```python
+send_mail(to, message, mailer='admin')
+```
+
+
+### Selecting mailers
+
+When you have more 
 
 ## Transports
 
@@ -61,19 +90,19 @@ await mailer.send(message)
 
 All transport classes can be found in `mailers.transports` module.
 
-| Service   | Class             | Example URL                                       | Description                                                       |
-|-----------|-------------------|---------------------------------------------------|-------------------------------------------------------------------|
-| SMTP      | SMTPTransport     | smtp://user:pass@hostname:port?timeout=&use_tls=1 | Sends mails using SMTP protocol.                                  |
-| In Memory | InMemoryTransport | not available                                     | Stores sent messages in the local variable. See an example below. |
-| File      | FileTransport     | file:///path/to/directory                         | Writes sent messages into directory.                              |
-| Null      | NullTransport     | null://                                           | Does not perform any sending.                                     |
-| Stream    | StreamTransport   | not available                                     | Writes message to an open stream. See an example below.           |
-| Console   | ConsoleTransport  | console://                                        | Prints messages into stdout.                                      |
-| GMail     | GMailTransport    | gmail://username:password                         | Sends via GMail.                                                  |
-| Mailgun   | MailgunTransport  | mailgun://username:password                       | Sends via Mailgun.                                                |
+| Class             | Example URL                                       | Description                                                       |
+|-------------------|---------------------------------------------------|-------------------------------------------------------------------|
+| SMTPTransport     | smtp://user:pass@hostname:port?timeout=&use_tls=1 | Sends mails using SMTP protocol.                                  |
+| InMemoryTransport | not available                                     | Stores sent messages in the local variable. See an example below. |
+| FileTransport     | file:///path/to/directory                         | Writes sent messages into directory.                              |
+| NullTransport     | null://                                           | Does not perform any sending.                                     |
+| StreamTransport   | not available                                     | Writes message to an open stream. See an example below.           |
+| ConsoleTransport  | console://                                        | Prints messages into stdout.                                      |
+| GMailTransport    | gmail://username:password                         | Sends via GMail.                                                  |
+| MailgunTransport  | mailgun://username:password                       | Sends via Mailgun.                                                |
 
 
-### Notes
+### Special notes
 
 #### InMemoryTransport
 
@@ -93,7 +122,7 @@ assert message in mailbox
 
 #### StreamTransport
 
-Writes messages into open stream.
+Writes messages into the open stream.
 
 ```python
 from mailers import StreamTransport, EmailMessage
