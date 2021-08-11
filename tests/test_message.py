@@ -1,36 +1,11 @@
 import datetime
 import email
+import pytest
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-import pytest
-
 from mailers.exceptions import BadHeaderError
 from mailers.message import Attachment, EmailMessage
-
-
-def _test_value_assigment(message, prop):
-    # value as list of emails
-    # message.to = ['user@localhost', 'another_user@localhost']
-    setattr(message, prop, ["user@localhost", "another_user@localhost"])
-    assert getattr(message, prop) == ["user@localhost", "another_user@localhost"]
-
-    # value as string
-    # message.to = user@localhost
-    setattr(message, prop, "another_user@localhost")
-    assert getattr(message, prop) == ["another_user@localhost"]
-
-    # add email via adder
-    # message.add_to('user@localhost')
-    # message.add_to('user@localhost', 'UserName')
-    setattr(message, prop, [])
-    adder = getattr(message, f"add_{prop}")
-    adder("user@localhost")
-    adder("second_user@localhost", "UserName")
-    assert getattr(message, prop) == [
-        "user@localhost",
-        "UserName <second_user@localhost>",
-    ]
 
 
 def test_creates_message_from_init():
@@ -61,7 +36,7 @@ def test_creates_message_from_init():
     assert message.reply_to == ["trash@localhost"]
     assert message.cc == ["cc_user@localhost"]
     assert message.bcc == ["bcc_user@localhost"]
-    assert message.date == "2000-01-01T00:00:00"
+    assert message.date.isoformat() == "2000-01-01T00:00:00"
 
     assert message.from_address == "root@localhost"
     assert message.subject == "SUBJECT"
@@ -71,28 +46,6 @@ def test_creates_message_from_init():
     assert message.attachments == [att1]
     assert message.headers == {"Date": "2000-01-01T00:00:00", "X-Custom": "x-value"}
     assert message.parts == [extra_message_part]
-
-
-def test_to(message):
-    _test_value_assigment(message, "to")
-
-
-def test_cc(message):
-    _test_value_assigment(message, "cc")
-
-
-def test_bcc(message):
-    _test_value_assigment(message, "bcc")
-
-
-def test_reply_to(message):
-    _test_value_assigment(message, "reply_to")
-
-
-def test_date(message):
-    today = datetime.datetime.today()
-    message.date = today
-    assert message.date == today.isoformat()
 
 
 def test_headers(message):
@@ -130,7 +83,8 @@ def test_requires_to_or_bcc():
 
 
 def test_requires_from_address():
-    message = EmailMessage(to="user@localhost")
+    message = EmailMessage(to="user@localhost", from_address='noreply@localhost')
+    message.from_address = None
     with pytest.raises(BadHeaderError) as ex:
         message.build_message()
     assert str(ex.value) == '"from_address" attribute was not set.'
@@ -170,16 +124,14 @@ def test_as_string(message):
 
 
 def test_forbid_new_lines():
-    message = EmailMessage(from_address="sender@localhost")
-    message.to = "root@localhost\n"
+    message = EmailMessage(from_address="sender@localhost", to="root@localhost\n")
     with pytest.raises(BadHeaderError) as ex:
         message.build_message()
 
     text = 'Header value "root@localhost\n" contains new line characters.'
     assert str(ex.value) == text
 
-    message = EmailMessage(from_address="sender@localhost")
-    message.to = "root@localhost\r"
+    message = EmailMessage(from_address="sender@localhost", to="root@localhost\r")
     with pytest.raises(BadHeaderError) as ex:
         message.build_message()
 
@@ -188,9 +140,7 @@ def test_forbid_new_lines():
 
 
 def test_add_part():
-    message = EmailMessage(
-        to="root@localhost", boundary="1111111", from_address="sender@localhost"
-    )
+    message = EmailMessage(to="root@localhost", boundary="1111111", from_address="sender@localhost")
     part = MIMEText("CONTENT")
     message.add_part(part)
     assert len(message.parts) == 1
@@ -200,3 +150,51 @@ def test_add_part():
 
     actual_part = msg.get_payload()[1]
     assert str(part) == str(actual_part)
+
+
+def test_add_to():
+    message = EmailMessage(to="root@localhost", from_address="sender@localhost")
+    message.add_to('user@localhost', 'Root')
+    assert message.to == ["root@localhost", 'Root <user@localhost>']
+
+
+def test_add_to_array():
+    message = EmailMessage(to=["root@localhost"], from_address="sender@localhost")
+    message.add_to('user@localhost', 'Root')
+    assert message.to == ["root@localhost", 'Root <user@localhost>']
+
+
+def test_add_cc():
+    message = EmailMessage(cc="root@localhost", from_address="sender@localhost")
+    message.add_cc('user@localhost')
+    assert message.cc == ["root@localhost", 'user@localhost']
+
+
+def test_add_cc_array():
+    message = EmailMessage(cc=["root@localhost"], from_address="sender@localhost")
+    message.add_cc('user@localhost')
+    assert message.cc == ["root@localhost", 'user@localhost']
+
+
+def test_add_bcc():
+    message = EmailMessage(bcc="root@localhost", from_address="sender@localhost")
+    message.add_bcc('user@localhost')
+    assert message.bcc == ["root@localhost", 'user@localhost']
+
+
+def test_add_bcc_array():
+    message = EmailMessage(bcc=["root@localhost"], from_address="sender@localhost")
+    message.add_bcc('user@localhost')
+    assert message.bcc == ["root@localhost", 'user@localhost']
+
+
+def test_add_reply_to():
+    message = EmailMessage(reply_to="root@localhost", from_address="sender@localhost")
+    message.add_reply_to('user@localhost')
+    assert message.reply_to == ["root@localhost", 'user@localhost']
+
+
+def test_add_reply_to_array():
+    message = EmailMessage(reply_to=["root@localhost"], from_address="sender@localhost")
+    message.add_reply_to('user@localhost')
+    assert message.reply_to == ["root@localhost", 'user@localhost']

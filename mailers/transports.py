@@ -1,48 +1,43 @@
+from __future__ import annotations
+
 import abc
+import aiofiles
+import aiosmtplib
 import datetime
 import os
 import ssl
 import sys
-from typing import Any, Dict, List, Mapping, Optional, Type, Union, cast
-
-from mailers.importer import import_from_string
+import typing as t
+from typing import Any, List, Optional, Union
 
 from .config import EmailURL
-from .exceptions import (
-    DependencyNotFound,
-    ImproperlyConfiguredError,
-    NotRegisteredTransportError,
-)
+from .exceptions import NotRegisteredTransportError
 from .message import EmailMessage
 
-try:
-    import aiofiles
-except ImportError:  # pragma: nocover
-    aiofiles = None
 
-try:
-    import aiosmtplib
-except ImportError:  # pragma: nocover
-    aiosmtplib = None
+class Transport(t.Protocol):  # pragma: nocover
+    async def send(self, message: EmailMessage) -> None:
+        ...
+
+    @classmethod
+    def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
+        ...
 
 
-class BaseTransport(abc.ABC):
+class BaseTransport(abc.ABC):  # pragma: nocover
     @abc.abstractmethod
-    async def send(self, message: EmailMessage) -> None:  # pragma: nocover
+    async def send(self, message: EmailMessage) -> None:
         raise NotImplementedError()
+
+    @classmethod
+    def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
+        return None
 
 
 class FileTransport(BaseTransport):
     def __init__(self, directory: str):
-        if aiofiles is None:
-            raise DependencyNotFound(
-                '%s requires "aiofiles" library installed.' % self.__class__.__name__
-            )
-
         if directory is None or directory == "":
-            raise ImproperlyConfiguredError(
-                'Argument "path" of FileTransport cannot be None.'
-            )
+            raise ValueError('Argument "path" of FileTransport cannot be None.')
 
         self._directory = directory
 
@@ -53,7 +48,7 @@ class FileTransport(BaseTransport):
             await stream.write(message.as_string().encode("utf8"))
 
     @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> "FileTransport":
+    def from_url(cls, url: Union[str, EmailURL]) -> FileTransport:
         url = EmailURL(url)
         return cls(url.path)
 
@@ -63,7 +58,7 @@ class NullTransport(BaseTransport):
         pass
 
     @classmethod
-    def from_url(cls, *args: Any) -> "NullTransport":
+    def from_url(cls, *args: Any) -> NullTransport:
         return cls()
 
 
@@ -79,7 +74,7 @@ class InMemoryTransport(BaseTransport):
         self._storage.append(message)
 
     @classmethod
-    def from_url(cls, *args: Any) -> "InMemoryTransport":
+    def from_url(cls, *args: Any) -> InMemoryTransport:
         mailbox: List[EmailMessage] = []
         return cls(mailbox)
 
@@ -109,11 +104,6 @@ class SMTPTransport(BaseTransport):
         key_file: Optional[str] = None,
         cert_file: Optional[str] = None,
     ):
-        if aiosmtplib is None:
-            raise DependencyNotFound(
-                '%s requires "aiosmtplib" library installed.' % self.__class__.__name__
-            )
-
         self._host = host
         self._user = user
         self._port = port
@@ -140,7 +130,7 @@ class SMTPTransport(BaseTransport):
             await client.send_message(message.build_message())
 
     @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> "SMTPTransport":
+    def from_url(cls, url: Union[str, EmailURL]) -> SMTPTransport:
         url = EmailURL(url)
 
         def _cast_to_bool(value: str) -> bool:
@@ -178,7 +168,7 @@ class GMailTransport(SMTPTransport):
         )
 
     @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> "GMailTransport":
+    def from_url(cls, url: Union[str, EmailURL]) -> GMailTransport:
         url = EmailURL(str(url) + "@default")
         return cls(url.username, url.password)
 
@@ -195,46 +185,48 @@ class MailgunTransport(SMTPTransport):
         )
 
     @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> "MailgunTransport":
+    def from_url(cls, url: Union[str, EmailURL]) -> MailgunTransport:
         url = EmailURL(str(url) + "@default")
         return cls(url.username, url.password)
 
 
-class Transports:
-    mapping: Dict[str, Union[str, Type[BaseTransport]]] = {
-        "smtp": "mailers.transports:SMTPTransport",
-        "file": "mailers.transports:FileTransport",
-        "null": "mailers.transports:NullTransport",
-        "memory": "mailers.transports:InMemoryTransport",
-        "console": "mailers.transports:ConsoleTransport",
-        "gmail": "mailers.transports:GMailTransport",
-        "mailgun": "mailers.transports:MailgunTransport",
-    }
+_protocol_handlers: t.Dict[str, t.Type[Transport]] = {
+    'smtp': SMTPTransport,
+    'file': FileTransport,
+    'null': NullTransport,
+    'memory': InMemoryTransport,
+    'console': ConsoleTransport,
+    'gmail': GMailTransport,
+    'mailgun': MailgunTransport,
+}
 
-    @classmethod
-    def bind_url(cls, protocol: str, factory: Union[str, Type[BaseTransport]]) -> None:
-        cls.mapping[protocol] = factory
 
-    @classmethod
-    def bind_urls(cls, urls: Mapping[str, Union[str, Type[BaseTransport]]]) -> None:
-        for protocol, factory in urls.items():
-            cls.bind_url(protocol, factory)
+def create_from_url(url: t.Union[str, EmailURL]) -> Transport:
+    """Create a transport instance from URL configuration."""
 
-    @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> BaseTransport:
-        url = EmailURL(url)
-        if url.transport not in cls.mapping:
-            raise NotRegisteredTransportError(
-                f'No transport found with scheme "{url.transport}".'
-            )
+    url = EmailURL(url)
+    if url.transport not in _protocol_handlers:
+        raise NotRegisteredTransportError(f'No transport found with scheme "{url.transport}".')
 
-        klass = cls.mapping[url.transport]
-        if isinstance(klass, str):
-            klass = import_from_string(klass)
+    klass = _protocol_handlers[url.transport]
+    instance = klass.from_url(url)
+    if instance is None:
+        instance = klass()
+    return instance
 
-        klass = cast(Type[BaseTransport], klass)
-        factory = getattr(klass, "from_url", None)
-        if factory is not None:
-            return factory(url)
 
-        return klass()
+def add_protocol_handler(protocol: str, transport: t.Type[Transport]) -> None:
+    """Register a new protocol handler.
+
+    Example:
+        import mailers
+
+        class MyTransport:
+            async def send(self, email_message: EmailMessage) -> None: ...
+
+        mailers.add_transport('myproto', MyTransport)
+
+        # then you can use it like this:
+        mailers.add_mailer('myproto://')
+    """
+    _protocol_handlers[protocol] = transport

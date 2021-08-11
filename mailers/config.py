@@ -54,12 +54,7 @@ class EmailURL:
         return self._options
 
     def replace(self, **kwargs: typing.Any) -> "EmailURL":
-        if (
-            "username" in kwargs
-            or "password" in kwargs
-            or "hostname" in kwargs
-            or "port" in kwargs
-        ):
+        if "username" in kwargs or "password" in kwargs or "hostname" in kwargs or "port" in kwargs:
             hostname = kwargs.pop("hostname", self.hostname)
             port = kwargs.pop("port", self.port)
             username = kwargs.pop("username", self.username)

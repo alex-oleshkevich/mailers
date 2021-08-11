@@ -28,9 +28,7 @@ def test_attachment():
 
 
 def test_build():
-    attachment = Attachment(
-        file_name="file.txt", contents="CONTENTS", mime_type="text/plain"
-    )
+    attachment = Attachment(file_name="file.txt", contents="CONTENTS", mime_type="text/plain")
     part = attachment.build()
     assert isinstance(part, MIMEBase)
 

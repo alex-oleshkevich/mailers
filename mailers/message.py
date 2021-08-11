@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import abc
 import datetime
 import email
 import email.encoders
+import typing as t
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import AnyStr, Dict, Iterable, List, Optional, Union
 
 from .exceptions import BadHeaderError
 
@@ -17,7 +19,7 @@ class BaseAttachment(abc.ABC):
         charset: str = None,
         disposition: str = "attachment",
         content_id: str = None,
-        headers: Dict[str, str] = None,
+        headers: t.Dict[str, str] = None,
     ):
         self.mime_type = mime_type
         self.charset = charset
@@ -44,12 +46,12 @@ class Attachment(BaseAttachment):
     def __init__(
         self,
         file_name: str,
-        contents: Union[str, bytes],
+        contents: t.Union[str, bytes],
         mime_type: str = "application/octet-stream",
         disposition: str = "attachment",
         charset: str = None,
         content_id: str = None,
-        headers: Dict[str, str] = None,
+        headers: t.Dict[str, str] = None,
     ):
         self.file_name = file_name
         self.contents = contents
@@ -61,22 +63,20 @@ class Attachment(BaseAttachment):
             headers=headers,
         )
 
-    def read(self) -> Union[str, bytes]:
+    def read(self) -> t.Union[str, bytes]:
         return self.contents
 
     def build(self) -> MIMEBase:
         main_type, subtype = self.mime_type.split("/")
         part = MIMEBase(main_type, subtype)
-        part.add_header(
-            "Content-Disposition", self.disposition, filename=self.file_name
-        )
+        part.add_header("Content-Disposition", self.disposition, filename=self.file_name)
         part.set_payload(self.read(), self.charset)
         for header_name, header_value in self.headers.items():
             part.add_header(header_name, header_value)
         return part
 
 
-def _ensure_list(value: Union[str, Iterable[str]]) -> List[str]:
+def _ensure_list(value: t.Union[str, t.Iterable[str], None]) -> t.List[str]:
     if value is None:
         return []
 
@@ -92,131 +92,83 @@ def _create_address(address: str, name: str = None) -> str:
 
 
 def _forbid_new_lines(value: str) -> str:
-    if value is not None:
-        if "\n" in value or "\r" in value:
-            raise BadHeaderError(
-                f'Header value "{value}" contains new line characters.'
-            )
+    if value is not None and ("\n" in value or "\r" in value):
+        raise BadHeaderError(f'Header value "{value}" contains new line characters.')
     return value
 
 
 class EmailMessage:
-    _to: List[str]
-    _cc: List[str]
-    _bcc: List[str]
-    _reply_to: List[str]
-
     def __init__(
         self,
-        to: Union[str, List[str]] = None,
-        subject: Optional[str] = None,
-        text_body: Optional[str] = None,
-        from_address: Optional[str] = None,
-        cc: Union[str, List[str]] = None,
-        bcc: Union[str, List[str]] = None,
-        reply_to: Union[str, List[str]] = None,
-        html_body: Optional[str] = None,
-        attachments: List[Attachment] = None,
-        headers: Dict[str, str] = None,
-        date: Optional[datetime.datetime] = None,
-        boundary: Optional[str] = None,
-        charset: Optional[str] = None,
-        parts: List[MIMEBase] = None,
+        *,
+        to: t.Union[str, t.Iterable[str]] = None,
+        subject: str = None,
+        text_body: t.Optional[str] = None,
+        from_address: t.Optional[str],
+        cc: t.Union[str, t.Iterable[str]] = None,
+        bcc: t.Union[str, t.Iterable[str]] = None,
+        reply_to: t.Union[str, t.Iterable[str]] = None,
+        html_body: t.Optional[str] = None,
+        attachments: t.Iterable[Attachment] = None,
+        headers: t.Dict[str, str] = None,
+        date: t.Optional[datetime.datetime] = None,
+        boundary: t.Optional[str] = None,
+        charset: t.Optional[str] = None,
+        parts: t.Iterable[MIMEBase] = None,
         encoding: str = "quoted-printable",
     ):
-        self.to = to
-        self.cc = cc
-        self.bcc = bcc
-        self.reply_to = reply_to
+        self.to: t.List[str] = _ensure_list(to)
+        self.cc = _ensure_list(cc)
+        self.bcc = _ensure_list(bcc)
+        self.reply_to = _ensure_list(reply_to)
 
         self.subject = subject
         self.from_address = from_address
         self.text_body = text_body
         self.html_body = html_body
-        self.attachments = attachments or []
+        self.attachments = list(attachments or [])
         self.boundary = boundary
         self.charset = charset
         self.headers = headers or {}
-        self.parts = parts or []
+        self.parts = list(parts or [])
         self.encoding = encoding
         self.date = date or datetime.datetime.today()
+        self.headers['Date'] = self.date.isoformat()
 
-    @property
-    def to(self) -> List[str]:
-        return self._to
-
-    @to.setter
-    def to(self, value: Union[str, Iterable[str]]) -> None:
-        self._to = _ensure_list(value)
-
-    @property
-    def cc(self) -> List[str]:
-        return self._cc
-
-    @cc.setter
-    def cc(self, value: Union[str, Iterable[str]]) -> None:
-        self._cc = _ensure_list(value)
-
-    @property
-    def bcc(self) -> List[str]:
-        return self._bcc
-
-    @bcc.setter
-    def bcc(self, value: Union[str, Iterable[str]]) -> None:
-        self._bcc = _ensure_list(value)
-
-    @property
-    def reply_to(self) -> List[str]:
-        return self._reply_to
-
-    @reply_to.setter
-    def reply_to(self, value: Union[str, Iterable[str]]) -> None:
-        self._reply_to = _ensure_list(value)
-
-    @property
-    def date(self) -> str:
-        return self.headers.get("Date", "")
-
-    @date.setter
-    def date(self, date: Union[str, datetime.datetime]) -> None:
-        if isinstance(date, datetime.datetime):
-            date = date.isoformat()
-        self.headers["Date"] = date
-
-    def add_to(self, address: str, name: Optional[str] = None) -> "EmailMessage":
-        self._to.append(_create_address(address, name))
+    def add_to(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
+        self.to.append(_create_address(address, name))
         return self
 
-    def add_cc(self, address: str, name: Optional[str] = None) -> "EmailMessage":
-        self._cc.append(_create_address(address, name))
+    def add_cc(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
+        self.cc.append(_create_address(address, name))
         return self
 
-    def add_bcc(self, address: str, name: Optional[str] = None) -> "EmailMessage":
-        self._bcc.append(_create_address(address, name))
+    def add_bcc(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
+        self.bcc.append(_create_address(address, name))
         return self
 
-    def add_reply_to(self, address: str, name: Optional[str] = None) -> "EmailMessage":
-        self._reply_to.append(_create_address(address, name))
+    def add_reply_to(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
+        self.reply_to.append(_create_address(address, name))
         return self
 
-    def add_part(self, part: MIMEBase) -> "EmailMessage":
+    def add_part(self, part: MIMEBase) -> EmailMessage:
         self.parts.append(part)
         return self
 
-    def add_attachment(self, attachment: Attachment) -> "EmailMessage":
+    def add_attachment(self, attachment: Attachment) -> EmailMessage:
         self.attachments.append(attachment)
         return self
 
     def attach(
         self,
-        contents: AnyStr,
+        contents: t.AnyStr,
         file_name: str,
         mime_type: str = "application/octet-stream",
         charset: str = None,
         content_id: str = None,
-        headers: Dict[str, str] = None,
+        headers: t.Dict[str, str] = None,
         disposition: str = "attachment",
-    ) -> "EmailMessage":
+    ) -> EmailMessage:
         self.add_attachment(
             Attachment(
                 file_name=file_name,
@@ -247,17 +199,17 @@ class EmailMessage:
             raise BadHeaderError('Neither "to" or "bcc" attribute was not set.')
 
         envelope.add_header("From", _forbid_new_lines(self.from_address))
-        envelope.add_header("To", _forbid_new_lines(", ".join(self._to)))
+        envelope.add_header("To", _forbid_new_lines(", ".join(self.to)))
         envelope.add_header("Content-Transfer-Encoding", self.encoding)
 
-        if len(self._cc):
-            envelope.add_header("Cc", ", ".join(self._cc))
+        if len(self.cc):
+            envelope.add_header("Cc", ", ".join(self.cc))
 
-        if len(self._bcc):
-            envelope.add_header("Bcc", ", ".join(self._bcc))
+        if len(self.bcc):
+            envelope.add_header("Bcc", ", ".join(self.bcc))
 
-        if len(self._reply_to):
-            envelope.add_header("Reply-to", ", ".join(self._reply_to))
+        if len(self.reply_to):
+            envelope.add_header("Reply-to", ", ".join(self.reply_to))
 
         for name, value in self.headers.items():
             envelope.add_header(name, value)

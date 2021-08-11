@@ -1,10 +1,8 @@
-from typing import Mapping, Optional, Union
-
 from .config import EmailURL
+from .delivery import send
 from .exceptions import MailersError
-from .mailer import Mailer, MailerRegistry, registry
+from .mailer import Mailer, add_mailer, get_mailer
 from .message import Attachment, EmailMessage
-from .shortcuts import get_mailer, send_mail
 from .transports import (
     BaseTransport,
     FileTransport,
@@ -14,11 +12,11 @@ from .transports import (
     NullTransport,
     SMTPTransport,
     StreamTransport,
-    Transports,
+    add_protocol_handler,
+    create_from_url,
 )
 
 __all__ = [
-    "Transports",
     "InMemoryTransport",
     "SMTPTransport",
     "NullTransport",
@@ -32,21 +30,9 @@ __all__ = [
     "Attachment",
     "EmailURL",
     "Mailer",
-    "MailerRegistry",
-    "registry",
-    "send_mail",
     "get_mailer",
+    "add_mailer",
+    "add_protocol_handler",
+    "create_from_url",
+    "send",
 ]
-
-__version__ = "0.0.2"
-
-
-def configure(
-    mailers: Mapping[str, Union[str, EmailURL, Mailer]],
-    transports: Optional[Mapping[str, str]] = None,
-) -> None:
-    for name, mailer in mailers.items():
-        registry.add(name, mailer)
-
-    if transports is not None:
-        Transports.bind_urls(transports)

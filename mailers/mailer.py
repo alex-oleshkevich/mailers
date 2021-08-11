@@ -1,39 +1,65 @@
-from typing import Any, Dict, Union
+import typing as t
 
 from .config import EmailURL
-from .exceptions import NotRegisteredMailer
+from .exceptions import MailerIsRegisteredError, NotRegisteredMailer
 from .message import EmailMessage
-from .transports import BaseTransport, Transports
+from .transports import Transport, create_from_url
 
 
 class Mailer:
-    def __init__(self, url_or_transport: Union[str, EmailURL, BaseTransport]) -> None:
-        if isinstance(url_or_transport, (str, EmailURL)):
-            url_or_transport = Transports.from_url(url_or_transport)
+    """A facade for sending mails."""
 
-        self._transport = url_or_transport
+    def __init__(self, transport: Transport) -> None:
+        self.transport = transport
 
-    async def send(self, message: EmailMessage) -> Any:
-        return await self._transport.send(message)
-
-
-class MailerRegistry:
-    def __init__(self) -> None:
-        self._mailers: Dict[str, Mailer] = {}
-
-    def add(self, name: str, mailer: Union[str, EmailURL, Mailer]) -> None:
-        if isinstance(mailer, (str, EmailURL)):
-            mailer = Mailer(mailer)
-        self._mailers[name] = mailer
-
-    def get(self, name: str) -> Mailer:
-        if name not in self:
-            raise NotRegisteredMailer(f'Mailer with name "{name}" not registered.')
-
-        return self._mailers[name]
-
-    def __contains__(self, item: str) -> bool:
-        return item in self._mailers
+    async def send(self, message: EmailMessage) -> t.Any:
+        return await self.transport.send(message)
 
 
-registry = MailerRegistry()
+_mailers: t.Dict[str, Mailer] = {}
+
+
+def add_mailer(
+    url: t.Union[str, EmailURL] = None,
+    *,
+    mailer: Mailer = None,
+    transport: Transport = None,
+    name: str = 'default',
+) -> None:
+    """Add a new mailer. Later you can obtain this mailer using it's name.
+    If the name is taken an exception will be raised."""
+
+    if url:
+        mailer = Mailer(create_from_url(url))
+    elif mailer:
+        pass
+    elif transport:
+        mailer = Mailer(transport)
+    else:
+        raise ValueError('Either url, or mailer, or transport arguments required.')
+
+    if name in _mailers:
+        raise MailerIsRegisteredError('Mailer with name "%s" is already registered.' % name)
+
+    _mailers[name] = mailer
+
+
+def remove_mailer(name: str) -> None:
+    """Remove previously registered mailer."""
+    _mailers.pop(name, None)
+
+
+def clear_mailers() -> None:
+    """Remove all mailers."""
+    _mailers.clear()
+
+
+def get_mailer(name: str = 'default') -> Mailer:
+    """Get a registered mailer.
+    If mailer cannot be found an NotRegisteredMailer will be raised.
+    You can register mailer with `add_mailer` function."""
+
+    try:
+        return _mailers[name]
+    except KeyError:
+        raise NotRegisteredMailer('Mailer with name "%s" is not registered.' % name) from None

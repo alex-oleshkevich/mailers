@@ -1,30 +1,18 @@
 class MailersError(Exception):
-    pass
-
-
-class SMTPError(MailersError):
-    pass
-
-
-class DependencyNotFound(MailersError):
-    pass
-
-
-class ImproperlyConfiguredError(MailersError):
-    pass
-
-
-class ImportFromStringError(MailersError):
-    pass
+    """Base error class."""
 
 
 class NotRegisteredTransportError(MailersError):
-    pass
+    """Raised when transport is not registered but retrieved."""
 
 
 class BadHeaderError(MailersError):
-    pass
+    """Raised if the header contains errors."""
+
+
+class MailerIsRegisteredError(MailersError):
+    """Raised if the mailer's name is already taken."""
 
 
 class NotRegisteredMailer(MailersError):
-    pass
+    """Raised when a mailer is not registered."""

@@ -1,13 +1,11 @@
 import os
+import pytest
 import sys
 import tempfile
 from unittest import mock
 
-import pytest
-
 from mailers import transports
 from mailers.config import EmailURL
-from mailers.exceptions import DependencyNotFound, ImproperlyConfiguredError
 
 
 @pytest.mark.asyncio
@@ -53,7 +51,7 @@ async def test_file_transport(message):
     assert isinstance(backend, transports.FileTransport)
 
     # URL must have path parameter
-    with pytest.raises(ImproperlyConfiguredError) as ex:
+    with pytest.raises(ValueError) as ex:
         url = EmailURL("file://")
         transports.FileTransport.from_url(url)
     assert str(ex.value) == 'Argument "path" of FileTransport cannot be None.'
@@ -66,12 +64,6 @@ async def test_file_transport(message):
         files = os.listdir(directory)
         assert len(files) == 1
 
-        with mock.patch("mailers.transports.aiofiles", None):
-            with pytest.raises(DependencyNotFound) as ex:
-                transports.FileTransport(directory)
-            text = 'FileTransport requires "aiofiles" library installed.'
-            assert str(ex.value) == text
-
 
 @pytest.mark.asyncio
 async def test_smtp_transport(message, smtpd_server, mailbox):
@@ -83,18 +75,9 @@ async def test_smtp_transport(message, smtpd_server, mailbox):
     backend = transports.SMTPTransport.from_url("smtp://")
     assert isinstance(backend, transports.SMTPTransport)
 
-    backend = transports.SMTPTransport(
-        smtpd_server.hostname, smtpd_server.port, timeout=1
-    )
+    backend = transports.SMTPTransport(smtpd_server.hostname, smtpd_server.port, timeout=1)
     await backend.send(message)
     assert len(mailbox) == 1
-
-    with mock.patch("mailers.transports.aiosmtplib", None):
-        with pytest.raises(DependencyNotFound) as ex:
-            transports.SMTPTransport(
-                smtpd_server.hostname, smtpd_server.port, timeout=1
-            )
-        assert str(ex.value) == 'SMTPTransport requires "aiosmtplib" library installed.'
 
 
 @pytest.mark.asyncio
@@ -149,9 +132,7 @@ async def test_gmail_transport(message, smtpd_server, mailbox):
 @pytest.mark.asyncio
 async def test_mailgun_transport(message, smtpd_server, mailbox):
     # should create from EmailURL
-    backend = transports.MailgunTransport.from_url(
-        EmailURL("mailgun://username:password")
-    )
+    backend = transports.MailgunTransport.from_url(EmailURL("mailgun://username:password"))
     assert isinstance(backend, transports.MailgunTransport)
 
     # should create from URL string

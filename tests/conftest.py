@@ -1,10 +1,10 @@
 import asyncio
-
 import pytest
 from aiosmtpd.controller import Controller
 from aiosmtpd.handlers import Message
 
-from mailers import InMemoryTransport, Mailer, configure
+from mailers import InMemoryTransport, Mailer, add_mailer
+from mailers.mailer import clear_mailers
 from mailers.message import EmailMessage
 
 
@@ -22,10 +22,10 @@ class RecordingHandler(Message):
     def handle_message(self, message):
         self.messages.append(message)
 
-    async def handle_EHLO(self, server, session, envelope, hostname):
+    async def handle_EHLO(self, server, session, envelope, hostname, responses):
         """Advertise auth login support."""
         session.host_name = hostname
-        return "250-AUTH LOGIN\r\n250 HELP"
+        return responses
 
 
 @pytest.fixture(scope="function")
@@ -39,16 +39,13 @@ def smtpd_handler(mailbox):
 
 
 @pytest.fixture(scope="function")
-def smtpd_server(request, smtpd_handler):
+def smtpd_server(smtpd_handler):
     event_loop = asyncio.get_event_loop()
     server = event_loop.run_until_complete(amain(smtpd_handler))
-
-    def close_server():
-        server.stop()
-
-    request.addfinalizer(close_server)
-
-    return server
+    print('start server' * 10)
+    yield server
+    print('stop server' * 10)
+    server.stop()
 
 
 @pytest.fixture
@@ -69,4 +66,6 @@ def mailer(mailbox):
 
 @pytest.fixture(autouse=True)
 def configure_mailers(mailbox):
-    configure(mailers={"default": Mailer(InMemoryTransport(mailbox))})
+    add_mailer(mailer=Mailer(InMemoryTransport(mailbox)), name='default')
+    yield
+    clear_mailers()
