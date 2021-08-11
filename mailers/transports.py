@@ -8,7 +8,7 @@ import os
 import ssl
 import sys
 import typing as t
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, IO
 
 from .config import EmailURL
 from .exceptions import NotRegisteredTransportError
@@ -80,7 +80,7 @@ class InMemoryTransport(BaseTransport):
 
 
 class StreamTransport(BaseTransport):
-    def __init__(self, output: Any):
+    def __init__(self, output: t.IO):
         self._output = output
 
     async def send(self, message: EmailMessage) -> None:
@@ -88,7 +88,7 @@ class StreamTransport(BaseTransport):
 
 
 class ConsoleTransport(StreamTransport):
-    def __init__(self) -> None:
+    def __init__(self, output=sys.stderr) -> None:
         super().__init__(sys.stdout)
 
 
@@ -156,23 +156,6 @@ class SMTPTransport(BaseTransport):
         )
 
 
-class GMailTransport(SMTPTransport):
-    def __init__(self, user: Optional[str], password: Optional[str], timeout: int = 10):
-        super().__init__(
-            host="smtp.gmail.com",
-            port=465,
-            user=user,
-            password=password,
-            use_tls=True,
-            timeout=timeout,
-        )
-
-    @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> GMailTransport:
-        url = EmailURL(str(url) + "@default")
-        return cls(url.username, url.password)
-
-
 class MailgunTransport(SMTPTransport):
     def __init__(self, user: Optional[str], password: Optional[str], timeout: int = 10):
         super().__init__(
@@ -196,7 +179,6 @@ _protocol_handlers: t.Dict[str, t.Type[Transport]] = {
     'null': NullTransport,
     'memory': InMemoryTransport,
     'console': ConsoleTransport,
-    'gmail': GMailTransport,
     'mailgun': MailgunTransport,
 }
 

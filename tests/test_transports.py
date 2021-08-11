@@ -112,27 +112,9 @@ async def test_console_transport(message, smtpd_server, mailbox):
 
 
 @pytest.mark.asyncio
-async def test_gmail_transport(message, smtpd_server, mailbox):
-    # should create from EmailURL
-    backend = transports.GMailTransport.from_url(EmailURL("gmail://username:password"))
-    assert isinstance(backend, transports.GMailTransport)
-
-    # should create from URL string
-    backend = transports.GMailTransport.from_url("gmail://username:password")
-    assert isinstance(backend, transports.GMailTransport)
-
-    backend = transports.GMailTransport("username", "password", timeout=1)
-    assert backend._host == "smtp.gmail.com"
-    assert backend._port == 465
-    assert backend._use_tls is True
-    assert backend._user == "username"
-    assert backend._password == "password"
-
-
-@pytest.mark.asyncio
 async def test_mailgun_transport(message, smtpd_server, mailbox):
     # should create from EmailURL
-    backend = transports.MailgunTransport.from_url(EmailURL("mailgun://username:password"))
+    backend = transports.MailgunTransport.from_url(EmailURL("mailgun://username:password@mailgun.com"))
     assert isinstance(backend, transports.MailgunTransport)
 
     # should create from URL string

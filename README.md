@@ -8,7 +8,6 @@
 ![GitHub Release Date](https://img.shields.io/github/release-date/alex-oleshkevich/mailers)
 ![Lines of code](https://img.shields.io/tokei/lines/github/alex-oleshkevich/mailers)
 
-
 ## Installation
 
 ```bash
@@ -87,64 +86,123 @@ This package does not implement direct access to files at moment. This is someth
 
 ## Transports
 
-### Preinstalled transports
+### SMTP transport
 
-All transport classes can be found in `mailers.transports` module.
+Send messages via third-party SMTP servers.
 
-| Class             | Example URL                                       | Description                                                       |
-|-------------------|---------------------------------------------------|-------------------------------------------------------------------|
-| SMTPTransport     | smtp://user:pass@hostname:port?timeout=&use_tls=1 | Sends mails using SMTP protocol.                                  |
-| InMemoryTransport | not available                                     | Stores sent messages in the local variable. See an example below. |
-| FileTransport     | file:///path/to/directory                         | Writes sent messages into directory.                              |
-| NullTransport     | null://                                           | Does not perform any sending.                                     |
-| StreamTransport   | not available                                     | Writes message to an open stream. See an example below.           |
-| ConsoleTransport  | console://                                        | Prints messages into stdout.                                      |
-| GMailTransport    | gmail://username:password                         | Sends via GMail.                                                  |
-| MailgunTransport  | mailgun://username:password                       | Sends via Mailgun.                                                |
+**Class:** `mailers.transports.SMTPTransport`  
+**directory** `smtp://user:pass@hostname:port?timeout=&use_tls=1`  
+**Options:**
 
-### Special notes
+* `host` (string, default "localhost") - SMTP server host
+* `port` (string, default "25") - SMTP server port
+* `user` (string) - SMTP server login
+* `password` (string) - SMTP server login password
+* `use_tls` (string, choices: "yes", "1", "on", "true") - use TLS
+* `timeout` (int) - connection timeout
+* `cert_file` (string) - path to certificate file
+* `key_file` (string) - path to key file
 
-#### InMemoryTransport
+### File transport
 
-`InMemoryTransport` takes a list and writes outgoing mail into it. Read this list to inspect the outbox.
+Write outgoing messages into a directory in EML format.
+
+**Class:** `mailers.transports.FileTransport`  
+**DSN:** `file:///tmp/mails`  
+**Options:**
+
+* `directory` (string) path to a directory
+
+### Null transport
+
+Discards outgoing messages. Takes no action on send.
+
+**Class:** `mailers.transports.NullTransport`  
+**DSN:** `null://`
+
+### Memory transport
+
+Keeps all outgoing messages in memory. Good for testing.
+
+**Class:** `mailers.transports.InMemoryTransport`  
+**DSN:** `memory://`  
+**Options:**
+
+* `storage` (list of strings) - outgoing message container
+
+You can access the mailbox via ".mailbox" attribute.
+
+Example:
 
 ```python
-from mailers import InMemoryTransport, EmailMessage
+from mailers import Mailer, InMemoryTransport, EmailMessage
 
-message = EmailMessage(from_address='noreply@localhost')
-mailbox = []
-transport = InMemoryTransport(mailbox)
-await transport.send(message)
+transport = InMemoryTransport([])
+mailer = Mailer(transport=transport)
 
-assert message in mailbox
+await mailer.send(EmailMessage(...))
+assert len(transport.mailbox) == 1  # here are all outgoing messages
 ```
 
-#### StreamTransport
+### Streaming transport
 
-Writes messages into the open stream.
+Writes all messages into a writable stream. Ok for local development.
+
+**Class:** `mailers.transports.StreamTransport`  
+**DSN:** unsupported  
+**Options:**
+
+* `output` (typing.IO) - a writable stream
+
+Example:
 
 ```python
-from mailers import StreamTransport, EmailMessage
-from io import StringIO
+import io
+from mailers import Mailer, StreamTransport
 
-message = EmailMessage(from_address='noreply@localhost')
-
-transport = StreamTransport(output=StringIO())
-await transport.send(message)
+transport = StreamTransport(output=io.StringIO())
+mailer = Mailer(transport=transport)
 ```
 
-`output` is any IO compatible object.
+### Console transport
+
+This is a preconfigured subclass of streaming transport. Writes to `sys.stderr` by default.
+
+**Class:** `mailers.transports.ConsoleTransport`  
+**DSN:** `console://`  
+**Options:**
+
+* `output` (typing.IO) - a writable stream
+
+### Mailgun transport
+
+This is pre-configured transport to use with [Maingun](https://mailgun.com) service. Based on SMTPTransport.
+
+**Class:** `mailers.transports.MailgunTransport`  
+**DSN:** `mailgun://username:password@mailgun.com`  
+**Options:**
+
+* `user` (string) - Mailgun SMTP username
+* `password` (string) - Mailgun SMTP password
+* `timeout` (integer, default "10") - connection timeout
 
 ### Custom transports.
 
-Each transport must implement `async def send(self, message: EmailMessage) -> None` method. Preferably, inherit
-from `BaseTransport` class:
+Each transport must implement `mailers.transports.Transport` protocol. Preferably, inherit from `BaseTransport` class:
 
 ```python
-from mailers import BaseTransport, Mailer, EmailMessage
+import typing as t
+from mailers import BaseTransport, Mailer, EmailMessage, Transport, EmailURL
 
 
 class PrintTransport(BaseTransport):
+    @classmethod
+    def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
+        # this method is optional, 
+        # if your transport does not support instantiation from URL then return None here.
+        # returning None is the default behavior
+        return None
+
     async def send(self, message: EmailMessage) -> None
         print(str(message))
 
@@ -152,35 +210,12 @@ class PrintTransport(BaseTransport):
 mailer = Mailer(transport=PrintTransport())
 ```
 
-In order to make your transport to accept `EmailURL` instances, your transport class has to implement `from_url`
-class method:
+The library will call `Transport.from_url` when it needs to instantiate the transport instance from the URL. It is ok to
+return `None` as call result then the transport will be instantiated using construction without any arguments passed.
+
+Once you have defined a new transport, register a URL protocol for it:
 
 ```python
-from mailers import BaseTransport, EmailURL
-
-
-class PrintTransport(BaseTransport):
-    @classmethod
-    def from_url(cls, url: EmailURL) -> "PrintTransport":
-        return cls()
+add_protocol_handler('print', PrintTransport)
+mailer = Mailer('print://')
 ```
-
-### Add custom transport protocols.
-
-Once you build a custom transport you can add it's URL to enable URL-based configurations.
-
-```python
-from mailers import add_protocol_handler, Mailer, BaseTransport, EmailURL, create_from_url
-
-class PrintTransport(BaseTransport):
-    @classmethod
-    def from_url(cls, url: EmailURL) -> "PrintTransport":
-        return cls()
-
-add_protocol_handler('myprotocol', PrintTransport)
-
-mailer = Mailer(transport=create_from_url('myprotocol://'))
-```
-
-Note that the transport must to implement `from_url` method to accept URL parameters. Otherwise it will be constructed
-without any arguments passed to the `__init__` method.

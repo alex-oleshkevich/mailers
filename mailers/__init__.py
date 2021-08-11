@@ -4,9 +4,9 @@ from .exceptions import MailersError
 from .mailer import Mailer, add_mailer, get_mailer
 from .message import Attachment, EmailMessage
 from .transports import (
+    Transport,
     BaseTransport,
     FileTransport,
-    GMailTransport,
     InMemoryTransport,
     MailgunTransport,
     NullTransport,
@@ -17,13 +17,13 @@ from .transports import (
 )
 
 __all__ = [
+    "Transport",
     "InMemoryTransport",
     "SMTPTransport",
     "NullTransport",
     "FileTransport",
     "BaseTransport",
     "StreamTransport",
-    "GMailTransport",
     "MailgunTransport",
     "MailersError",
     "EmailMessage",
