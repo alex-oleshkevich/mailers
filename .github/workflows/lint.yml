@@ -41,8 +41,8 @@ jobs:
 
             - name: Lint with black
               run: |
-                  black --check imia tests
+                  black --check mailers tests
 
             - name: Test with pytest
               run: |
-                  pytest --no-cov-on-fail --cov imia --cov tests
+                  pytest --no-cov-on-fail --cov mailers --cov tests
