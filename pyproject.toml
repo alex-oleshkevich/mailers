@@ -40,6 +40,7 @@ mypy = "^0.910"
 flake8 = "^3.9.2"
 aiofiles = "^0.7.0"
 types-aiofiles = "^0.1.9"
+dkimpy = "^1.0.5"
 
 
 [build-system]

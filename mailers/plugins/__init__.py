@@ -1,6 +1,6 @@
 import typing as t
 
-from .message import EmailMessage
+from ..message import EmailMessage
 
 
 class Plugin(t.Protocol):  # pragma: no cover
