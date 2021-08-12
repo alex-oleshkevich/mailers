@@ -19,6 +19,7 @@ pip install mailers
 * fully async
 * pluggable transports
 * multiple built-in transports including: SMTP, file, null, in-memory, streaming, and console.
+* plugin system
 
 ## Usage
 
@@ -76,7 +77,30 @@ with open('file.txt', 'r') as f:
 Accessing files is a blocking operation. You may want to use `aiofiles` or alternate library which reads files in
 non-blocking mode.
 
-This package does not implement direct access to files at moment. This is something to do at later stage.
+This package does not implement direct file access at the moment. This is something to do at later stage.
+
+## Plugins
+
+Plugins let you inspect and modify outgoing messages before or after they are sent. The plugin is a class that
+implements `mailers.plugins.Plugin` protocol. Plugins are added to mailers via `plugins` argument.
+
+Below you see an example plugin:
+
+```python
+from mailers import BasePlugin, EmailMessage, Mailer
+
+
+class PrintPlugin(BasePlugin):
+
+    async def on_before_send(self, message: EmailMessage) -> None:
+        print('sending message %s.' % message)
+
+    async def on_after_send(self, message: EmailMessage) -> None:
+        print('message has been sent %s.' % message)
+
+
+mailer = Mailer(plugins=[PrintPlugin()])
+```
 
 ## Transports
 

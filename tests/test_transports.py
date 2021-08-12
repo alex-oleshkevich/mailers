@@ -81,7 +81,7 @@ async def test_smtp_transport(message, smtpd_server, mailbox):
 
 
 @pytest.mark.asyncio
-async def test_stream_transport(message, smtpd_server, mailbox):
+async def test_stream_transport(message):
     class _stream:
         contents = None
 
@@ -96,7 +96,23 @@ async def test_stream_transport(message, smtpd_server, mailbox):
 
 
 @pytest.mark.asyncio
-async def test_console_transport(message, smtpd_server, mailbox):
+async def test_console_transport_stderr(message):
+    class _stream:
+        contents = None
+
+        def write(self, contents):
+            self.contents = contents
+
+    stream = _stream()
+
+    with mock.patch.object(sys, "stderr", stream):
+        backend = transports.ConsoleTransport('stderr')
+        await backend.send(message)
+        assert len(stream.contents) == len(str(message))
+
+
+@pytest.mark.asyncio
+async def test_console_transport_stdout(message):
     class _stream:
         contents = None
 
@@ -106,6 +122,19 @@ async def test_console_transport(message, smtpd_server, mailbox):
     stream = _stream()
 
     with mock.patch.object(sys, "stdout", stream):
-        backend = transports.ConsoleTransport()
+        backend = transports.ConsoleTransport('stdout')
         await backend.send(message)
         assert len(stream.contents) == len(str(message))
+
+
+@pytest.mark.asyncio
+async def test_console_transport_unsupported():
+    with pytest.raises(AssertionError) as ex:
+        transports.ConsoleTransport('unknown')
+    assert str(ex.value) == 'Unsupported console stream type: unknown.'
+
+
+@pytest.mark.asyncio
+async def test_console_transport_from_url():
+    transport = transports.ConsoleTransport.from_url('console://?stream=stdout')
+    assert transport._output == sys.stdout

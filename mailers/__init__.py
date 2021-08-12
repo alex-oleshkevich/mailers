@@ -3,6 +3,7 @@ from .exceptions import MailersError
 from .factories import add_protocol_handler, create_mailer, create_transport_from_url
 from .mailer import Mailer
 from .message import Attachment, EmailMessage
+from .plugins import BasePlugin, Plugin
 from .transports import (
     BaseTransport,
     FileTransport,
@@ -25,6 +26,8 @@ __all__ = [
     "EmailMessage",
     "Attachment",
     "EmailURL",
+    "Plugin",
+    "BasePlugin",
     "Mailer",
     "create_mailer",
     "create_transport_from_url",
