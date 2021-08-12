@@ -11,7 +11,7 @@ from mailers import (
 from mailers.exceptions import NotRegisteredTransportError
 
 
-class _DummyTransport(BaseTransport):
+class _DummyTransport(BaseTransport):  # pragma: no cover
     async def send(self, message: EmailMessage) -> None:
         pass
 
