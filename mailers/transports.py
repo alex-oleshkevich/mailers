@@ -8,10 +8,9 @@ import os
 import ssl
 import sys
 import typing as t
-from typing import Any, List, Optional, Union, IO
+from typing import Any, List, Optional, Union
 
 from .config import EmailURL
-from .exceptions import NotRegisteredTransportError
 from .message import EmailMessage
 
 
@@ -154,61 +153,3 @@ class SMTPTransport(BaseTransport):
             key_file=key_file,
             cert_file=cert_file,
         )
-
-
-class MailgunTransport(SMTPTransport):
-    def __init__(self, user: Optional[str], password: Optional[str], timeout: int = 10):
-        super().__init__(
-            host="smtp.mailgun.org",
-            port=465,
-            user=user,
-            password=password,
-            use_tls=True,
-            timeout=timeout,
-        )
-
-    @classmethod
-    def from_url(cls, url: Union[str, EmailURL]) -> MailgunTransport:
-        url = EmailURL(str(url) + "@default")
-        return cls(url.username, url.password)
-
-
-_protocol_handlers: t.Dict[str, t.Type[Transport]] = {
-    'smtp': SMTPTransport,
-    'file': FileTransport,
-    'null': NullTransport,
-    'memory': InMemoryTransport,
-    'console': ConsoleTransport,
-    'mailgun': MailgunTransport,
-}
-
-
-def create_from_url(url: t.Union[str, EmailURL]) -> Transport:
-    """Create a transport instance from URL configuration."""
-
-    url = EmailURL(url)
-    if url.transport not in _protocol_handlers:
-        raise NotRegisteredTransportError(f'No transport found with scheme "{url.transport}".')
-
-    klass = _protocol_handlers[url.transport]
-    instance = klass.from_url(url)
-    if instance is None:
-        instance = klass()
-    return instance
-
-
-def add_protocol_handler(protocol: str, transport: t.Type[Transport]) -> None:
-    """Register a new protocol handler.
-
-    Example:
-        import mailers
-
-        class MyTransport:
-            async def send(self, email_message: EmailMessage) -> None: ...
-
-        mailers.add_transport('myproto', MyTransport)
-
-        # then you can use it like this:
-        mailers.add_mailer('myproto://')
-    """
-    _protocol_handlers[protocol] = transport

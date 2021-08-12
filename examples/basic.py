@@ -1,14 +1,18 @@
+"""This is a very basic example."""
 import asyncio
 
-import mailers
+from mailers import EmailMessage, create_mailer
 
 
 async def main():
-    mailers.add_mailer('smtp://localhost:1025')
-    await mailers.send(
-        to=[('root@localhost', 'Root')],
-        subject='Hello',
-        text_body='This is message body',
+    mailer = create_mailer('smtp://localhost:1025')
+    await mailer.send(
+        EmailMessage(
+            to='root@localhost',
+            subject='Hello',
+            text_body='World',
+            from_address='reply@localhost',
+        )
     )
 
 

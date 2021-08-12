@@ -3,9 +3,7 @@ import pytest
 from aiosmtpd.controller import Controller
 from aiosmtpd.handlers import Message
 
-from mailers import InMemoryTransport, Mailer, add_mailer
-from mailers.mailer import clear_mailers
-from mailers.message import EmailMessage
+from mailers import EmailMessage, InMemoryTransport, Mailer
 
 
 async def amain(handler):
@@ -42,9 +40,7 @@ def smtpd_handler(mailbox):
 def smtpd_server(smtpd_handler):
     event_loop = asyncio.get_event_loop()
     server = event_loop.run_until_complete(amain(smtpd_handler))
-    print('start server' * 10)
     yield server
-    print('stop server' * 10)
     server.stop()
 
 
@@ -62,10 +58,3 @@ def message():
 def mailer(mailbox):
     transport = InMemoryTransport(mailbox)
     return Mailer(transport)
-
-
-@pytest.fixture(autouse=True)
-def configure_mailers(mailbox):
-    add_mailer(mailer=Mailer(InMemoryTransport(mailbox)), name='default')
-    yield
-    clear_mailers()

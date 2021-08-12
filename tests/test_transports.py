@@ -109,21 +109,3 @@ async def test_console_transport(message, smtpd_server, mailbox):
         backend = transports.ConsoleTransport()
         await backend.send(message)
         assert len(stream.contents) == len(str(message))
-
-
-@pytest.mark.asyncio
-async def test_mailgun_transport(message, smtpd_server, mailbox):
-    # should create from EmailURL
-    backend = transports.MailgunTransport.from_url(EmailURL("mailgun://username:password@mailgun.com"))
-    assert isinstance(backend, transports.MailgunTransport)
-
-    # should create from URL string
-    backend = transports.MailgunTransport.from_url("mailgun://username:password")
-    assert isinstance(backend, transports.MailgunTransport)
-
-    backend = transports.MailgunTransport("username", "password", timeout=1)
-    assert backend._host == "smtp.mailgun.org"
-    assert backend._port == 465
-    assert backend._use_tls is True
-    assert backend._user == "username"
-    assert backend._password == "password"

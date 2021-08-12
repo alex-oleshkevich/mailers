@@ -14,35 +14,29 @@
 pip install mailers
 ```
 
+## Features
+
+* fully async
+* pluggable transports
+* multiple built-in transports including: SMTP, file, null, in-memory, streaming, and console.
+
 ## Usage
 
 The package uses two main concepts: mailers and transports. The mailer is a class which abstracts you from the
 underlying transport and the transport does the actual message delivery.
 
 ```python
-from mailers import add_mailer, EmailMessage, send
+from mailers import create_mailer, EmailMessage
 
-add_mailer('smtp://user:password@localhost:25?timeout=2', name='default')
-
-message = EmailMessage(
-    to='user@localhost', from_address='from@localhost',
-    subject='Hello', text_body='World!'
-)
-await send('user@localhost', message)
+message = EmailMessage(to='user@localhost', from_address='from@localhost', subject='Hello', text_body='World!')
+mailer = create_mailer('smtp://user:password@localhost:25?timeout=2')
+await mailer.send(message)
 ```
 
-Or if you prefer more control on what is going one, take this more verbose path:
+You can also send to multiple recipients by passing an iterable int `to` argument:
 
 ```python
-from mailers import Mailer, SMTPTransport, EmailMessage
-
-mailer = Mailer(SMTPTransport('localhost', 25))
-
-message = EmailMessage(
-    to='user@localhost', from_address='from@localhost',
-    subject='Hello', text_body='World!'
-)
-await mailer.send(message)
+message = EmailMessage(to=['user@localhost', 'user2@localhost', 'user@localhost'], ...)
 ```
 
 ## Compose messages
@@ -90,8 +84,8 @@ This package does not implement direct access to files at moment. This is someth
 
 Send messages via third-party SMTP servers.
 
-**Class:** `mailers.transports.SMTPTransport`  
-**directory** `smtp://user:pass@hostname:port?timeout=&use_tls=1`  
+**Class:** `mailers.transports.SMTPTransport`
+**directory** `smtp://user:pass@hostname:port?timeout=&use_tls=1`
 **Options:**
 
 * `host` (string, default "localhost") - SMTP server host
@@ -107,8 +101,8 @@ Send messages via third-party SMTP servers.
 
 Write outgoing messages into a directory in EML format.
 
-**Class:** `mailers.transports.FileTransport`  
-**DSN:** `file:///tmp/mails`  
+**Class:** `mailers.transports.FileTransport`
+**DSN:** `file:///tmp/mails`
 **Options:**
 
 * `directory` (string) path to a directory
@@ -117,15 +111,15 @@ Write outgoing messages into a directory in EML format.
 
 Discards outgoing messages. Takes no action on send.
 
-**Class:** `mailers.transports.NullTransport`  
+**Class:** `mailers.transports.NullTransport`
 **DSN:** `null://`
 
 ### Memory transport
 
 Keeps all outgoing messages in memory. Good for testing.
 
-**Class:** `mailers.transports.InMemoryTransport`  
-**DSN:** `memory://`  
+**Class:** `mailers.transports.InMemoryTransport`
+**DSN:** `memory://`
 **Options:**
 
 * `storage` (list of strings) - outgoing message container
@@ -148,8 +142,8 @@ assert len(transport.mailbox) == 1  # here are all outgoing messages
 
 Writes all messages into a writable stream. Ok for local development.
 
-**Class:** `mailers.transports.StreamTransport`  
-**DSN:** unsupported  
+**Class:** `mailers.transports.StreamTransport`
+**DSN:** unsupported
 **Options:**
 
 * `output` (typing.IO) - a writable stream
@@ -168,23 +162,11 @@ mailer = Mailer(transport=transport)
 
 This is a preconfigured subclass of streaming transport. Writes to `sys.stderr` by default.
 
-**Class:** `mailers.transports.ConsoleTransport`  
-**DSN:** `console://`  
+**Class:** `mailers.transports.ConsoleTransport`
+**DSN:** `console://`
 **Options:**
 
 * `output` (typing.IO) - a writable stream
-
-### Mailgun transport
-
-This is pre-configured transport to use with [Maingun](https://mailgun.com) service. Based on SMTPTransport.
-
-**Class:** `mailers.transports.MailgunTransport`  
-**DSN:** `mailgun://username:password@mailgun.com`  
-**Options:**
-
-* `user` (string) - Mailgun SMTP username
-* `password` (string) - Mailgun SMTP password
-* `timeout` (integer, default "10") - connection timeout
 
 ### Custom transports.
 
@@ -198,7 +180,7 @@ from mailers import BaseTransport, Mailer, EmailMessage, Transport, EmailURL
 class PrintTransport(BaseTransport):
     @classmethod
     def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
-        # this method is optional, 
+        # this method is optional,
         # if your transport does not support instantiation from URL then return None here.
         # returning None is the default behavior
         return None
