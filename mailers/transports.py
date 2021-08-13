@@ -5,11 +5,10 @@ import aiofiles
 import aiosmtplib
 import datetime
 import os
-import ssl
 import sys
 import typing as t
 from email.message import Message
-from typing import Any, List, Optional, Union
+from typing import Any, List, Union
 
 from .config import EmailURL
 
@@ -109,24 +108,23 @@ class SMTPTransport(BaseTransport):
         self,
         host: str = "localhost",
         port: int = 25,
-        user: Optional[str] = None,
-        password: Optional[str] = None,
-        use_tls: Optional[bool] = None,
+        user: str = None,
+        password: str = None,
+        use_tls: bool = None,
         timeout: int = 10,
-        key_file: Optional[str] = None,
-        cert_file: Optional[str] = None,
+        key_file: str = None,
+        cert_file: str = None,
     ):
         self._host = host
         self._user = user
         self._port = port
         self._password = password
-        self._use_tls = use_tls
+        self._use_tls = use_tls or False
         self._timeout = timeout
         self._key_file = key_file
         self._cert_file = cert_file
 
     async def send(self, message: Message) -> None:
-        context = ssl.create_default_context()
         await aiosmtplib.send(
             message,
             hostname=self._host,
@@ -135,7 +133,6 @@ class SMTPTransport(BaseTransport):
             username=self._user,
             password=self._password,
             timeout=self._timeout,
-            tls_context=context,
             client_key=self._key_file,
             client_cert=self._cert_file,
         )

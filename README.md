@@ -58,6 +58,22 @@ message = EmailMessage(
     bcc=['bcc@example.com'],
     text_body='Hello world!',
     html_body='<b>Hello world!</b>',
+)
+```
+
+`cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
+
+## Attachments
+
+Use `attach_file` and `attach_content` to add attachments. Also, you can use `Attachment` class for more control.
+
+```python
+from mailers import EmailMessage, Attachment
+
+message = EmailMessage(
+    to='user@localhost',
+    from_address='from@example.tld',
+    text_body='Hello world!',
     attachments=[
         Attachment('CONTENTS', 'file.txt', 'text/plain'),
     ]
@@ -66,11 +82,30 @@ message = EmailMessage(
 # attachments can be added on demand:
 await message.attach_file(path='file.txt')
 
+# attach using a class
+message.add_attachment(Attachment('CONTENTS', 'file.txt', 'text/plain'))
+
 # or you may pass attachment contents directory
 message.attach_content(file_name='file.txt', content='HERE GO ATTACHMENT CONTENTS', mime_type='text/plain')
 ```
 
-`cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
+## Inline attachments
+
+You can add inline attachments (eg. images) and then reference them in HTML. For that, set `inline=True` and
+specify `content_id=SOMEUNIQID` arguments in `attach_*` functions. Then you can reference images in HTML part like
+that `<img src="cid:SOMEUNIQID">"`.
+
+```python
+from mailers import EmailMessage, Attachment
+
+message = EmailMessage(
+    to='user@localhost',
+    from_address='from@example.tld',
+    html_body='Render me <img src="cid:img1">',
+)
+
+await message.attach_file(path='/path/to/image.png', inline=True, content_id='img1')
+```
 
 ## DKIM signing
 
