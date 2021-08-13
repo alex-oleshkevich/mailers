@@ -67,7 +67,7 @@ message = EmailMessage(
 await message.attach_file(path='file.txt')
 
 # or you may pass attachment contents directory
-message.attach(file_name='file.txt', content='HERE GO ATTACHMENT CONTENTS', mime_type='text/plain')
+message.attach_content(file_name='file.txt', content='HERE GO ATTACHMENT CONTENTS', mime_type='text/plain')
 ```
 
 `cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.

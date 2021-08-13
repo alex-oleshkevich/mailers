@@ -89,7 +89,7 @@ def test_add_attachments(message):
 
 
 def test_attach(message: EmailMessage):
-    message.attach("file.txt", "contents", "text/plain", charset="utf-8", headers={'X-Test': 'value'})
+    message.attach_content("file.txt", "contents", "text/plain", charset="utf-8", headers={'X-Test': 'value'})
     assert len(message.attachments) == 1
     mime_message = message.to_mime_message()
     attachment: MIMEBase = mime_message.get_payload()[1]
@@ -150,8 +150,8 @@ def test_build_message(message: EmailMessage):
     message.subject = "SUBJECT"
     message.text_body = "TEXT"
     message.html_body = "HTML"
-    message.attach("file.txt", "ATTACHMENT", mime_type='text/plain')
-    message.add_part(MIMEText("EXTRA PART"))
+    message.attach_content("file.txt", "ATTACHMENT", mime_type='text/plain')
+    message.add_mime_part(MIMEText("EXTRA PART"))
 
     mime_message = message.to_mime_message()
     assert mime_message['From'] == 'root@localhost'
@@ -196,7 +196,7 @@ def test_forbid_new_lines():
 
 def test_add_part():
     message = EmailMessage(to="root@localhost", boundary="1111111", from_address="sender@localhost", text_body='Hey')
-    message.add_part(MIMEText("CONTENT"))
+    message.add_mime_part(MIMEText("CONTENT"))
 
     mime_message = message.to_mime_message()
     assert len(mime_message.get_payload()) == 2

@@ -148,13 +148,13 @@ class EmailMessage:
     def reply_to(self, value: t.Union[str, None, t.Iterable[str]]) -> None:
         self._reply_to = _make_list(value)
 
-    def add_part(self, part: MIMEBase) -> None:
+    def add_mime_part(self, part: MIMEBase) -> None:
         self.parts.append(part)
 
     def add_attachment(self, attachment: Attachment) -> None:
         self.attachments.append(attachment)
 
-    def attach(
+    def attach_content(
         self,
         file_name: str,
         content: t.Union[str, bytes],
@@ -164,6 +164,7 @@ class EmailMessage:
         charset: str = None,
         headers: dict = None,
     ) -> None:
+        """Attach arbitrary content."""
         self.add_attachment(
             Attachment(
                 charset=charset,
@@ -186,6 +187,7 @@ class EmailMessage:
         charset: str = None,
         headers: dict = None,
     ) -> None:
+        """Read and attach file contents."""
         path = str(path)
         file_name = file_name or os.path.basename(path)
         if mime_type is None:
@@ -193,7 +195,7 @@ class EmailMessage:
             if guessed:
                 mime_type = guessed[0]
         async with aiofiles.open(path, 'rb') as f:
-            self.attach(
+            self.attach_content(
                 content=await f.read(),
                 file_name=file_name,
                 mime_type=mime_type,
