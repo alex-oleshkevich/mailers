@@ -72,6 +72,29 @@ message.attach(file_name='file.txt', content='HERE GO ATTACHMENT CONTENTS', mime
 
 `cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
 
+## DKIM signing
+
+You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder. We provide a
+plugin for it.
+
+Note, you need to install [`dkimpy`](https://pypi.org/project/dkimpy/) package to start using this plugin.
+
+```python
+from mailers import create_mailer
+from mailers.plugins.dkim import DkimSignature
+
+dkim_plugin = DkimSignature(selector='default', private_key_path='/path/to/key.pem')
+
+# or you can put key content using private_key argument
+dkim_plugin = DkimSignature(selector='default', private_key='PRIVATE KEY GOES here...')
+
+mailer = create_mailer('smtp://')
+```
+
+The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
+
+It is recommended to place DKIM plugin to the last place in the plugins list.
+
 ## Plugins
 
 Plugins let you inspect and modify outgoing messages before or after they are sent. The plugin is a class that
@@ -99,27 +122,6 @@ mailer = Mailer(plugins=[PrintPlugin()])
 # or if you use create_mailer shortcut
 mailer = create_mailer(plugins=[PrintPlugin()])
 ```
-
-## DKIM signing
-
-You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder. We provide a
-plugin for it.
-
-Note, you need to install [`dkimpy`](https://pypi.org/project/dkimpy/) package to start using this plugin.
-
-```python
-from mailers import create_mailer
-from mailers.plugins.dkim import DkimSignature
-
-dkim_plugin = DkimSignature(selector='default', private_key_path='/path/to/key.pem')
-
-# or you can put key content using private_key argument
-dkim_plugin = DkimSignature(selector='default', private_key='PRIVATE KEY GOES here...')
-
-mailer = create_mailer('smtp://')
-```
-
-The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
 
 ## Transports
 

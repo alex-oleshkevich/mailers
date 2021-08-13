@@ -11,6 +11,7 @@ import pathlib
 import time
 import typing as t
 from builtins import AttributeError
+from email.encoders import encode_base64
 from email.message import Message
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -236,8 +237,12 @@ class EmailMessage:
                 part.set_payload(attachment.content)
                 part.set_charset(attachment.charset)
                 part.add_header('Content-Disposition', attachment.disposition, filename=attachment.file_name)
+
                 for header_name, header_value in attachment.headers.items():
                     part.add_header(header_name, header_value)
+
+                if main_type != 'text':
+                    encode_base64(part)
                 message.attach(part)
         else:
             message = MIMEText(self.text_body or '', 'plain', _charset=self.charset)
@@ -255,10 +260,8 @@ class EmailMessage:
             **self.headers,
         }
         for name, value in headers.items():
-            if value:
-                fixed_value = _forbid_new_lines(value)
-                if fixed_value:
-                    message.add_header(name, fixed_value)
+            if value := _forbid_new_lines(value):
+                message.add_header(name, value)
 
         return message
 

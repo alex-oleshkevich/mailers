@@ -150,7 +150,7 @@ def test_build_message(message: EmailMessage):
     message.subject = "SUBJECT"
     message.text_body = "TEXT"
     message.html_body = "HTML"
-    message.attach("file.txt", "ATTACHMENT")
+    message.attach("file.txt", "ATTACHMENT", mime_type='text/plain')
     message.add_part(MIMEText("EXTRA PART"))
 
     mime_message = message.to_mime_message()
