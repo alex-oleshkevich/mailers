@@ -80,15 +80,17 @@ implements `mailers.plugins.Plugin` protocol. Plugins are added to mailers via `
 Below you see an example plugin:
 
 ```python
-from mailers import BasePlugin, EmailMessage, Mailer, create_mailer
+from email.message import Message
+
+from mailers import BasePlugin, create_mailer, Mailer
 
 
 class PrintPlugin(BasePlugin):
 
-    async def on_before_send(self, message: EmailMessage) -> None:
+    async def on_before_send(self, message: Message) -> None:
         print('sending message %s.' % message)
 
-    async def on_after_send(self, message: EmailMessage) -> None:
+    async def on_after_send(self, message: Message) -> None:
         print('message has been sent %s.' % message)
 
 
@@ -116,9 +118,6 @@ dkim_plugin = DkimSignature(selector='default', private_key='PRIVATE KEY GOES he
 
 mailer = create_mailer('smtp://')
 ```
-
-The plugin will try to get the domain automatically from "From" header, but you can also pass domain directly using "
-domain" argument.
 
 The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
 
@@ -218,6 +217,7 @@ Each transport must implement `mailers.transports.Transport` protocol. Preferabl
 
 ```python
 import typing as t
+from email.message import Message
 from mailers import BaseTransport, Mailer, EmailMessage, Transport, EmailURL
 
 
@@ -229,7 +229,7 @@ class PrintTransport(BaseTransport):
         # returning None is the default behavior
         return None
 
-    async def send(self, message: EmailMessage) -> None
+    async def send(self, message: Message) -> None:
         print(str(message))
 
 

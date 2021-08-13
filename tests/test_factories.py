@@ -1,18 +1,12 @@
 import pytest
+from email.message import Message
 
-from mailers import (
-    BaseTransport,
-    EmailMessage,
-    NullTransport,
-    add_protocol_handler,
-    create_mailer,
-    create_transport_from_url,
-)
+from mailers import BaseTransport, NullTransport, add_protocol_handler, create_mailer, create_transport_from_url
 from mailers.exceptions import NotRegisteredTransportError
 
 
 class _DummyTransport(BaseTransport):  # pragma: no cover
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         pass
 
 

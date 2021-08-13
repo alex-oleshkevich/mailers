@@ -13,17 +13,12 @@ class DkimSignature(BasePlugin):
         private_key: str = None,
         private_key_path: str = None,
         headers: t.Iterable[str] = None,
-        domain: str = None,
     ) -> None:
         assert private_key or private_key_path, 'Either "dkim_key" or "dkim_key_path" must be passed.'
         self.dkim_selector = selector
         self.dkim_key = private_key
         self.dkim_key_path = private_key_path
-        self.domain = domain
-        if headers:
-            self.headers = [h.encode() for h in headers]
-        else:
-            self.headers = [b'From', b'To', b'Subject']
+        self.headers = headers or ['From', 'To', 'Subject']
 
     async def on_before_send(self, message: Message) -> None:
         key = self.dkim_key or ''
@@ -32,11 +27,8 @@ class DkimSignature(BasePlugin):
                 key = await f.read()
                 self.dkim_key = key  # cache
 
-        if self.domain:
-            sender_domain = self.domain
-        else:
-            from_address = message['From']
-            sender_domain = from_address.split('@')[-1]
+        from_address = message['From']
+        sender_domain = from_address.split('@')[-1]
 
         signature = dkim.sign(
             message=message.as_bytes(),
