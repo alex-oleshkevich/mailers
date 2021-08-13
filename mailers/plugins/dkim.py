@@ -1,50 +1,48 @@
 import aiofiles
 import dkim
+import typing as t
+from email.message import Message
 
-from .. import EmailMessage
 from . import BasePlugin
 
 
 class DkimSignature(BasePlugin):
     def __init__(
         self,
-        dkim_selector: str,
-        dkim_key: str = None,
-        dkim_key_path: str = None,
-        headers: str = None,
+        selector: str,
+        private_key: str = None,
+        private_key_path: str = None,
+        headers: t.Iterable[str] = None,
+        domain: str = None,
     ) -> None:
-        assert dkim_key or dkim_key_path, 'Either "dkim_key" or "dkim_key_path" must be passed.'
-        self.dkim_selector = dkim_selector
-        self.dkim_key = dkim_key
-        self.dkim_key_path = dkim_key_path
+        assert private_key or private_key_path, 'Either "dkim_key" or "dkim_key_path" must be passed.'
+        self.dkim_selector = selector
+        self.dkim_key = private_key
+        self.dkim_key_path = private_key_path
+        self.domain = domain
         if headers:
             self.headers = [h.encode() for h in headers]
         else:
-            self.headers = [
-                b'Content-Transfer-Encoding',
-                b'Content_type',
-                b'MIME-Version',
-                b'To',
-                b'From',
-                b'Subject',
-                b'Date',
-                b'Message-ID',
-                b'Sender',
-            ]
+            self.headers = [b'From', b'To', b'Subject']
 
-    async def on_before_send(self, message: EmailMessage) -> None:
-        key = self.dkim_key.encode() if self.dkim_key else ''
+    async def on_before_send(self, message: Message) -> None:
+        key = self.dkim_key or ''
         if self.dkim_key_path:
-            async with aiofiles.open(self.dkim_key_path, 'rb') as f:
+            async with aiofiles.open(self.dkim_key_path, 'r') as f:
                 key = await f.read()
+                self.dkim_key = key  # cache
 
-        assert message.from_address
-        sender_domain = message.from_address.split('@')[-1]
+        if self.domain:
+            sender_domain = self.domain
+        else:
+            from_address = message['From']
+            sender_domain = from_address.split('@')[-1]
+
         signature = dkim.sign(
-            message=message.as_string().encode(),
-            selector=str(self.dkim_selector).encode(),
+            message=message.as_bytes(),
+            selector=self.dkim_selector.encode(),
             domain=sender_domain.encode(),
-            privkey=key,
+            privkey=key.encode(),
             include_headers=self.headers,
         )
-        message.headers["DKIM-Signature"] = signature[len("DKIM-Signature: ") :].decode()
+        message.add_header("DKIM-Signature", signature[len("DKIM-Signature: ") :].decode().replace('\r\n', ' '))

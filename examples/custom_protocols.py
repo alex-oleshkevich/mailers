@@ -29,7 +29,7 @@ add_protocol_handler('print', PrintTransport)
 
 
 async def main():
-    message = EmailMessage(to='root@localhost', subject='Hello', text_body='World', from_address='reply@localhost')
+    message = EmailMessage(to='root@localhost', subject='Hello', text='World', from_address='reply@localhost')
     mailer = create_mailer('print://?stream=stdout')  # or stream=stderr
     await mailer.send(message)
 

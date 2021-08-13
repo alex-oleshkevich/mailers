@@ -20,6 +20,7 @@ pip install mailers
 * pluggable transports
 * multiple built-in transports including: SMTP, file, null, in-memory, streaming, and console.
 * plugin system
+* DKIM signature
 
 ## Usage
 

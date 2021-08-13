@@ -15,7 +15,7 @@ class PrintTransport(BaseTransport):
 
 
 async def main():
-    message = EmailMessage(to='root@localhost', subject='Hello', text_body='World', from_address='reply@localhost')
+    message = EmailMessage(to='root@localhost', subject='Hello', text='World', from_address='reply@localhost')
     mailer = Mailer(PrintTransport(sys.stdout))
     await mailer.send(message)
 

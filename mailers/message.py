@@ -1,245 +1,212 @@
 from __future__ import annotations
 
-import abc
+import aiofiles
 import datetime
 import email
 import email.encoders
+import email.utils
+import mimetypes
+import os
+import pathlib
+import time
 import typing as t
+from email.message import Message
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-from .exceptions import BadHeaderError
 
-
-class BaseAttachment(abc.ABC):
+class Attachment:
     def __init__(
         self,
+        file_name: str,
+        content: t.Union[str, bytes],
         mime_type: str = "application/octet-stream",
-        charset: str = None,
         disposition: str = "attachment",
+        charset: str = 'utf-8',
         content_id: str = None,
         headers: t.Dict[str, str] = None,
     ):
         self.mime_type = mime_type
-        self.charset = charset
         self.disposition = disposition
-        self.content_id = content_id
+        self.charset = charset
         self.headers = headers or {}
-
+        self.file_name = file_name
+        self.content = content.encode() if isinstance(content, str) else content
         if content_id:
             self.headers["Content-ID"] = f"<{content_id}>"
             self.headers["X-Attachment-ID"] = content_id
 
-    @abc.abstractmethod
-    def build(self) -> MIMEBase:  # pragma: nocover
-        raise NotImplementedError()
-
-    def as_string(self) -> str:
-        return self.build().as_string()
-
-    def __str__(self) -> str:
-        return self.as_string()
-
-
-class Attachment(BaseAttachment):
-    def __init__(
-        self,
-        file_name: str,
-        contents: t.Union[str, bytes],
-        mime_type: str = "application/octet-stream",
-        disposition: str = "attachment",
-        charset: str = None,
-        content_id: str = None,
-        headers: t.Dict[str, str] = None,
-    ):
-        self.file_name = file_name
-        self.contents = contents
-        super().__init__(
-            mime_type=mime_type,
-            charset=charset,
-            disposition=disposition,
-            content_id=content_id,
-            headers=headers,
+    def __repr__(self) -> str:
+        return '<Attachment file_name="%s" mime-type="%s" charset="%s">' % (
+            self.file_name,
+            self.mime_type,
+            self.charset,
         )
 
-    def read(self) -> t.Union[str, bytes]:
-        return self.contents
 
-    def build(self) -> MIMEBase:
-        main_type, subtype = self.mime_type.split("/")
-        part = MIMEBase(main_type, subtype)
-        part.add_header("Content-Disposition", self.disposition, filename=self.file_name)
-        part.set_payload(self.read(), self.charset)
-        for header_name, header_value in self.headers.items():
-            part.add_header(header_name, header_value)
-        return part
-
-
-def _ensure_list(value: t.Union[str, t.Iterable[str], None]) -> t.List[str]:
-    if value is None:
+def _make_list(obj: t.Union[str, None, t.Iterable[str]]) -> list[str]:
+    if obj is None:
         return []
 
-    if isinstance(value, str):
-        return [value]
-    return list(value)
+    if isinstance(obj, str):
+        return [obj]
 
-
-def _create_address(address: str, name: str = None) -> str:
-    if name:
-        return f"{name} <{address}>"
-    return address
-
-
-def _forbid_new_lines(value: str) -> str:
-    if value is not None and ("\n" in value or "\r" in value):
-        raise BadHeaderError(f'Header value "{value}" contains new line characters.')
-    return value
+    return list(obj)
 
 
 class EmailMessage:
     def __init__(
         self,
         *,
+        from_address: str,
         to: t.Union[str, t.Iterable[str]] = None,
         subject: str = None,
-        text_body: t.Optional[str] = None,
-        from_address: t.Optional[str],
+        text_body: str = None,
+        html_body: str = None,
         cc: t.Union[str, t.Iterable[str]] = None,
         bcc: t.Union[str, t.Iterable[str]] = None,
         reply_to: t.Union[str, t.Iterable[str]] = None,
-        html_body: t.Optional[str] = None,
         attachments: t.Iterable[Attachment] = None,
+        parts: t.Iterable[Message] = None,
         headers: t.Dict[str, str] = None,
         date: t.Optional[datetime.datetime] = None,
         boundary: t.Optional[str] = None,
         charset: t.Optional[str] = None,
-        parts: t.Iterable[MIMEBase] = None,
-        encoding: str = "quoted-printable",
-    ):
-        self.to: t.List[str] = _ensure_list(to)
-        self.cc = _ensure_list(cc)
-        self.bcc = _ensure_list(bcc)
-        self.reply_to = _ensure_list(reply_to)
+    ) -> None:
+        assert to or bcc, 'Either "to" or "bcc" argument required.'
 
         self.subject = subject
         self.from_address = from_address
-        self.text_body = text_body
-        self.html_body = html_body
-        self.attachments = list(attachments or [])
+        self.text = text_body
+        self.html = html_body
         self.boundary = boundary
         self.charset = charset
-        self.headers = headers or {}
-        self.parts = list(parts or [])
-        self.encoding = encoding
+        self.to = _make_list(to)
+        self.cc = _make_list(cc)
+        self.bcc = _make_list(bcc)
+        self.reply_to = _make_list(reply_to)
         self.date = date or datetime.datetime.today()
-        self.headers['Date'] = self.date.isoformat()
+        self.headers = headers or {}
+        self.attachments = list(attachments or [])
+        self.parts = list(parts or [])
 
-    def add_to(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
-        self.to.append(_create_address(address, name))
-        return self
+        domain = self.from_address.split('@')[-1]
+        self.id = email.utils.make_msgid(domain=domain)
 
-    def add_cc(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
-        self.cc.append(_create_address(address, name))
-        return self
-
-    def add_bcc(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
-        self.bcc.append(_create_address(address, name))
-        return self
-
-    def add_reply_to(self, address: str, name: t.Optional[str] = None) -> EmailMessage:
-        self.reply_to.append(_create_address(address, name))
-        return self
-
-    def add_part(self, part: MIMEBase) -> EmailMessage:
+    def add_part(self, part: MIMEBase) -> None:
         self.parts.append(part)
-        return self
 
-    def add_attachment(self, attachment: Attachment) -> EmailMessage:
+    def add_attachment(self, attachment: Attachment) -> None:
         self.attachments.append(attachment)
-        return self
 
     def attach(
         self,
-        contents: t.AnyStr,
         file_name: str,
-        mime_type: str = "application/octet-stream",
-        charset: str = None,
+        content: t.Union[str, bytes],
+        mime_type: str = 'application/octet-stream',
+        inline: bool = False,
         content_id: str = None,
-        headers: t.Dict[str, str] = None,
-        disposition: str = "attachment",
-    ) -> EmailMessage:
+        charset: str = 'utf-8',
+        headers: dict = None,
+    ) -> None:
         self.add_attachment(
             Attachment(
-                file_name=file_name,
-                contents=contents,
-                mime_type=mime_type,
                 charset=charset,
-                content_id=content_id,
                 headers=headers,
-                disposition=disposition,
+                mime_type=mime_type,
+                content_id=content_id,
+                content=content,
+                file_name=file_name,
+                disposition='inline' if inline else 'attachment',
             )
         )
-        return self
 
-    def build_message(self) -> MIMEMultipart:
-        envelope = MIMEMultipart(boundary=self.boundary)
+    async def attach_file(
+        self,
+        path: t.Union[str, pathlib.Path],
+        file_name: str = None,
+        mime_type: str = 'application/octet-stream',
+        inline: bool = False,
+        content_id: str = None,
+        charset: str = 'utf-8',
+        headers: dict = None,
+    ) -> None:
+        path = str(path)
+        file_name = file_name or os.path.basename(path)
+        if mime_type is None:
+            guessed = mimetypes.guess_extension(file_name)
+            if guessed:
+                mime_type = guessed[0]
+        async with aiofiles.open(path, 'rb') as f:
+            self.attach(
+                content=await f.read(),
+                file_name=file_name,
+                mime_type=mime_type,
+                inline=inline,
+                content_id=content_id,
+                charset=charset,
+                headers=headers,
+            )
 
-        envelope.preamble = "This is a multi-part message in MIME format."
+    def to_mime_message(self) -> Message:
+        """Generate a MIME message.
+        We will try to keep the result message as simple as possible."""
+        message: Message
+        if any([self.parts, self.attachments, self.html, self.parts]):
+            message = MIMEMultipart('alternative', boundary=self.boundary)
 
-        if self.subject is not None:
-            envelope.add_header("Subject", self.subject)
+            if self.text:
+                message.attach(MIMEText(self.text, 'plain', _charset=self.charset))
 
-        # RFC 822
-        if self.from_address is None:
-            raise BadHeaderError('"from_address" attribute was not set.')
+            if self.html:
+                # the email client will try to render the last part first
+                message.attach(MIMEText(self.html, 'html', _charset=self.charset))
 
-        # RFC 822
-        if not len(self.to) and not len(self.bcc):
-            raise BadHeaderError('Neither "to" or "bcc" attribute was not set.')
+            for part in self.parts:
+                message.attach(part)
 
-        envelope.add_header("From", _forbid_new_lines(self.from_address))
-        envelope.add_header("To", _forbid_new_lines(", ".join(self.to)))
-        envelope.add_header("Content-Transfer-Encoding", self.encoding)
+            for attachment in self.attachments:
+                main_type, sub_type = attachment.mime_type.split('/')
+                part = MIMEBase(main_type, sub_type, _charset=attachment.charset)
+                part.set_payload(attachment.content)
+                part.add_header('Content-Disposition', attachment.disposition, filename=attachment.file_name)
+                for header_name, header_value in attachment.headers.items():
+                    part.add_header(header_name, header_value)
+                message.attach(part)
+        else:
+            message = MIMEText(self.text or '', 'plain', _charset=self.charset)
 
-        if len(self.cc):
-            envelope.add_header("Cc", ", ".join(self.cc))
+        # add headers
+        message.add_header('From', self.from_address)
+        message.add_header('To', ', '.join(self.to))
 
-        if len(self.bcc):
-            envelope.add_header("Bcc", ", ".join(self.bcc))
+        date = time.mktime(self.date.timetuple())
+        message.add_header('Date', email.utils.formatdate(date))
+        message.add_header('Message-ID', self.id)
 
-        if len(self.reply_to):
-            envelope.add_header("Reply-to", ", ".join(self.reply_to))
+        for header_name, header_value in self.headers.items():
+            message.add_header(header_name, header_value)
 
-        for name, value in self.headers.items():
-            envelope.add_header(name, value)
+        if self.subject:
+            message.add_header('Subject', self.subject)
+        if self.cc:
+            message.add_header('Cc', ', '.join(self.cc))
+        if self.bcc:
+            message.add_header('Bcc', ', '.join(self.bcc))
+        if self.reply_to:
+            message.add_header('Reply-to', ', '.join(self.reply_to))
 
-        # create content parts
-        main_message = MIMEMultipart("alternative")
-        envelope.attach(main_message)
+        return message
 
-        if self.text_body:
-            text_part = MIMEText(self.text_body, "plain", self.charset)
-            main_message.attach(text_part)
-
-        if self.html_body:
-            html_part = MIMEText(self.html_body, "html", self.charset)
-            main_message.attach(html_part)
-
-        # add custom parts and attachments at the end to prevent their content
-        # be used as preview message in GMail.
-        for part in self.parts:
-            envelope.attach(part)
-
-        for attachment in self.attachments:
-            part = attachment.build()
-            email.encoders.encode_base64(part)
-            envelope.attach(part)
-
-        return envelope
+    def as_bytes(self) -> bytes:
+        return self.get_message().as_bytes()
 
     def as_string(self) -> str:
-        return self.build_message().as_string()
+        return self.get_message().as_string()
+
+    def get_message(self) -> Message:
+        return self.to_mime_message()
 
     def __str__(self) -> str:
         return self.as_string()

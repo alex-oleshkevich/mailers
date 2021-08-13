@@ -8,14 +8,14 @@ import os
 import ssl
 import sys
 import typing as t
+from email.message import Message
 from typing import Any, List, Optional, Union
 
 from .config import EmailURL
-from .message import EmailMessage
 
 
 class Transport(t.Protocol):  # pragma: nocover
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         ...
 
     @classmethod
@@ -25,7 +25,7 @@ class Transport(t.Protocol):  # pragma: nocover
 
 class BaseTransport(abc.ABC):  # pragma: nocover
     @abc.abstractmethod
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         raise NotImplementedError()
 
     @classmethod
@@ -40,11 +40,11 @@ class FileTransport(BaseTransport):
 
         self._directory = directory
 
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         file_name = "message_%s.eml" % datetime.datetime.today().isoformat()
         output_file = os.path.join(self._directory, file_name)
         async with aiofiles.open(output_file, "wb") as stream:
-            await stream.write(message.as_string().encode("utf8"))
+            await stream.write(message.as_bytes())
 
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> FileTransport:
@@ -53,7 +53,7 @@ class FileTransport(BaseTransport):
 
 
 class NullTransport(BaseTransport):
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         pass
 
     @classmethod
@@ -63,18 +63,18 @@ class NullTransport(BaseTransport):
 
 class InMemoryTransport(BaseTransport):
     @property
-    def mailbox(self) -> List[EmailMessage]:
+    def mailbox(self) -> List[Message]:
         return self._storage
 
-    def __init__(self, storage: List[EmailMessage]):
+    def __init__(self, storage: List[Message]):
         self._storage = storage
 
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         self._storage.append(message)
 
     @classmethod
     def from_url(cls, *args: Any) -> InMemoryTransport:
-        mailbox: List[EmailMessage] = []
+        mailbox: List[Message] = []
         return cls(mailbox)
 
 
@@ -82,7 +82,7 @@ class StreamTransport(BaseTransport):
     def __init__(self, output: t.IO):
         self._output = output
 
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         self._output.write(str(message))
 
 
@@ -125,7 +125,7 @@ class SMTPTransport(BaseTransport):
         self._key_file = key_file
         self._cert_file = cert_file
 
-    async def send(self, message: EmailMessage) -> None:
+    async def send(self, message: Message) -> None:
         context = ssl.create_default_context()
         client = aiosmtplib.SMTP(
             hostname=self._host,
@@ -139,7 +139,7 @@ class SMTPTransport(BaseTransport):
             client_cert=self._cert_file,
         )
         async with client:
-            await client.send_message(message.build_message())
+            await client.send_message(message)
 
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> SMTPTransport:

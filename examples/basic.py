@@ -10,7 +10,7 @@ async def main():
         EmailMessage(
             to='root@localhost',
             subject='Hello',
-            text_body='World',
+            text='World',
             from_address='reply@localhost',
         )
     )
