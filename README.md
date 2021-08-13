@@ -16,16 +16,19 @@ pip install mailers
 
 ## Features
 
+* full utf-8 support
 * fully async
 * pluggable transports
 * multiple built-in transports including: SMTP, file, null, in-memory, streaming, and console.
 * plugin system
-* DKIM signature
+* DKIM signing
 
 ## Usage
 
-The package uses two main concepts: mailers and transports. The mailer is a class which abstracts you from the
-underlying transport and the transport does the actual message delivery.
+A little of theory. This library exposes two main concepts: mailers and transports. Mailers are high-level interfaces
+that you should use to send emails while transports are low-level drivers for mailers.
+
+Here is the example:
 
 ```python
 from mailers import create_mailer, EmailMessage
@@ -43,7 +46,7 @@ message = EmailMessage(to=['user@localhost', 'user2@localhost', 'user@localhost'
 
 ## Compose messages
 
-The arguments and methods of `EmailMessage ` class are self-explanatory so here is some basic example:
+The arguments and methods of `EmailMessage ` class are self-explanatory so here is an kick-start example:
 
 ```python
 from mailers import EmailMessage, Attachment
@@ -61,24 +64,13 @@ message = EmailMessage(
 )
 
 # attachments can be added on demand:
+await message.attach_file(path='file.txt')
 
-with open('file.txt', 'r') as f:
-    message.attach(f.read(), f.name, 'text/plain')
-
-    # alternatively
-    message.add_attachment(
-        Attachment(f.read(), f.name, 'text/plain')
-    )
+# or you may pass attachment contents directory
+message.attach(file_name='file.txt', content='HERE GO ATTACHMENT CONTENTS', mime_type='text/plain')
 ```
 
 `cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
-
-### A note about attachments
-
-Accessing files is a blocking operation. You may want to use `aiofiles` or alternate library which reads files in
-non-blocking mode.
-
-This package does not implement direct file access at the moment. This is something to do at later stage.
 
 ## Plugins
 
@@ -88,7 +80,7 @@ implements `mailers.plugins.Plugin` protocol. Plugins are added to mailers via `
 Below you see an example plugin:
 
 ```python
-from mailers import BasePlugin, EmailMessage, Mailer
+from mailers import BasePlugin, EmailMessage, Mailer, create_mailer
 
 
 class PrintPlugin(BasePlugin):
@@ -101,7 +93,34 @@ class PrintPlugin(BasePlugin):
 
 
 mailer = Mailer(plugins=[PrintPlugin()])
+
+# or if you use create_mailer shortcut
+mailer = create_mailer(plugins=[PrintPlugin()])
 ```
+
+## DKIM signing
+
+You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder. We provide a
+plugin for it.
+
+Note, you need to install [`dkimpy`](https://pypi.org/project/dkimpy/) package to start using this plugin.
+
+```python
+from mailers import create_mailer
+from mailers.plugins.dkim import DkimSignature
+
+dkim_plugin = DkimSignature(selector='default', private_key_path='/path/to/key.pem')
+
+# or you can put key content using private_key argument
+dkim_plugin = DkimSignature(selector='default', private_key='PRIVATE KEY GOES here...')
+
+mailer = create_mailer('smtp://')
+```
+
+The plugin will try to get the domain automatically from "From" header, but you can also pass domain directly using "
+domain" argument.
+
+The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
 
 ## Transports
 
