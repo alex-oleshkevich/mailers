@@ -127,7 +127,8 @@ class SMTPTransport(BaseTransport):
 
     async def send(self, message: Message) -> None:
         context = ssl.create_default_context()
-        client = aiosmtplib.SMTP(
+        await aiosmtplib.send(
+            message,
             hostname=self._host,
             port=self._port,
             use_tls=self._use_tls,
@@ -138,8 +139,6 @@ class SMTPTransport(BaseTransport):
             client_key=self._key_file,
             client_cert=self._cert_file,
         )
-        async with client:
-            await client.send_message(message)
 
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> SMTPTransport:

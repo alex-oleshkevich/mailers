@@ -7,6 +7,7 @@ You need to setup several environment variables before you can use this script:
 * MAILER_URL - mailer configuration URL
 """
 import asyncio
+import base64
 import os
 import tempfile
 
@@ -35,7 +36,9 @@ async def main():
             html_body='Do you see this red dot? <img src="cid:img1">',
             from_address=os.environ.get('MAILERS_FROM_ADDRESS', 'root@localhost'),
             attachments=[
-                Attachment('file1_raw.txt', RED_DOT, 'image/png', disposition='inline', content_id='img1'),
+                Attachment(
+                    'red_dot.png', base64.b64decode(RED_DOT), 'image/png', disposition='attachment', content_id='img1'
+                ),
             ],
         )
 
