@@ -5,7 +5,8 @@ from .exceptions import NotRegisteredTransportError
 from .mailer import Mailer
 from .plugins import Plugin
 from .signers import Signer
-from .transports import ConsoleTransport, FileTransport, InMemoryTransport, NullTransport, SMTPTransport, Transport
+from .transports import ConsoleTransport, FileTransport, InMemoryTransport, NullTransport, Transport
+from .transports.smtp import SMTPTransport
 
 _protocol_handlers: t.Dict[str, t.Type[Transport]] = {
     'smtp': SMTPTransport,

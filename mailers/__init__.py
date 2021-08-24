@@ -7,7 +7,8 @@ from .message import Email
 from .plugins import BasePlugin, Plugin
 from .result import SentMessage, SentMessages
 from .signers import Signer
-from .transports import FileTransport, InMemoryTransport, NullTransport, SMTPTransport, StreamTransport, Transport
+from .transports import FileTransport, InMemoryTransport, NullTransport, StreamTransport, Transport
+from .transports.smtp import SMTPTransport
 
 __all__ = [
     "Transport",
