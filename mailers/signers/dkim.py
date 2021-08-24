@@ -1,6 +1,12 @@
-import dkim
 import typing as t
 from email.message import Message
+
+try:  # pragma: no cover
+    import dkim
+except ImportError:  # pragma: no cover
+    raise ImportError(
+        'Please install dkimpy (https://pypi.org/project/dkimpy/) library ' 'to sign messages with DKIM method.'
+    )
 
 from mailers.signers.base import Signer
 

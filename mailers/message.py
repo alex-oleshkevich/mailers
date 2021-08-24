@@ -17,7 +17,7 @@ from email.policy import EmailPolicy
 import secrets
 from mailers.exceptions import InvalidBodyError, InvalidSenderError
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     from _typeshed import OpenBinaryMode, OpenTextMode
 
 Recipients = t.Union[str, Address, t.Iterable[t.Union[str, Address]]]
@@ -255,7 +255,7 @@ class Email:
                 first_address = self.from_address.first
                 if first_address:
                     domain = first_address.domain
-                else:
+                else:  # pragma: no cover
                     raise ValueError('Could not read sender domain from From header.')
             self.id = email.utils.make_msgid(domain=domain)
 

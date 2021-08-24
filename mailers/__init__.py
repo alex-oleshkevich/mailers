@@ -5,6 +5,7 @@ from .factories import add_protocol_handler, create_mailer, create_transport_fro
 from .mailer import Mailer
 from .message import Email
 from .plugins import BasePlugin, Plugin
+from .result import SentMessage, SentMessages
 from .signers import Signer
 from .transports import FileTransport, InMemoryTransport, NullTransport, SMTPTransport, StreamTransport, Transport
 
@@ -26,4 +27,6 @@ __all__ = [
     "create_mailer",
     "create_transport_from_url",
     "add_protocol_handler",
+    "SentMessages",
+    "SentMessage",
 ]

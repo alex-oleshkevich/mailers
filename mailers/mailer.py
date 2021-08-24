@@ -5,6 +5,7 @@ from email.message import Message
 from .encrypters import Encrypter
 from .message import Email
 from .plugins import Plugin
+from .result import SentMessages
 from .signers import Signer
 from .transports import Transport
 
@@ -29,7 +30,7 @@ class Mailer:
         self.encrypter = encrypter
         self.plugins = plugins or []
 
-    async def send(self, message: t.Union[Email, Message]) -> t.Any:
+    async def send(self, message: t.Union[Email, Message]) -> SentMessages:
         mime_message = message.build() if isinstance(message, Email) else message
         for plugin in self.plugins:
             await plugin.on_before_send(mime_message)
@@ -40,16 +41,20 @@ class Mailer:
         if self.signer:
             mime_message = self.signer.sign(mime_message)
 
+        sent_messages = SentMessages()
         for transport in self.transports:
-            try:
-                await transport.send(mime_message)
-            except Exception:
-                raise
-            else:
+            sent_message = await transport.send(mime_message)
+            sent_messages.append(sent_message)
+            if sent_message.ok:
                 break
 
         for plugin in self.plugins:
-            await plugin.on_after_send(mime_message)
+            if sent_messages.ok:
+                await plugin.on_after_send(mime_message, sent_messages)
+            else:
+                await plugin.on_send_error(mime_message, sent_messages)
+
+        return sent_messages
 
     def send_sync(self, message: t.Union[Email, Message]) -> t.Any:
         anyio.run(self.send, message)

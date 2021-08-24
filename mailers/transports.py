@@ -11,11 +11,12 @@ from email.message import Message
 from typing import Any, List, Union
 
 from .config import EmailURL
+from .result import SentMessage
 
 
 class Transport(abc.ABC):  # pragma: nocover
     @abc.abstractmethod
-    async def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> SentMessage:
         raise NotImplementedError()
 
     @classmethod
@@ -30,11 +31,12 @@ class FileTransport(Transport):
 
         self._directory = directory
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> SentMessage:
         file_name = "message_%s.eml" % datetime.datetime.today().isoformat()
         output_file = os.path.join(self._directory, file_name)
         async with await anyio.open_file(output_file, 'wb') as f:
             await f.write(message.as_bytes())
+        return SentMessage(True, message, self)
 
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> FileTransport:
@@ -43,8 +45,8 @@ class FileTransport(Transport):
 
 
 class NullTransport(Transport):
-    async def send(self, message: Message) -> None:
-        pass
+    async def send(self, message: Message) -> SentMessage:
+        return SentMessage(True, message, self)
 
     @classmethod
     def from_url(cls, *args: Any) -> NullTransport:
@@ -59,8 +61,9 @@ class InMemoryTransport(Transport):
     def __init__(self, storage: List[Message]):
         self._storage = storage
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> SentMessage:
         self._storage.append(message)
+        return SentMessage(True, message, self)
 
     @classmethod
     def from_url(cls, *args: Any) -> InMemoryTransport:
@@ -72,8 +75,9 @@ class StreamTransport(Transport):
     def __init__(self, output: t.IO):
         self._output = output
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> SentMessage:
         self._output.write(str(message))
+        return SentMessage(True, message, self)
 
 
 class ConsoleTransport(StreamTransport):
@@ -115,18 +119,22 @@ class SMTPTransport(Transport):
         self._key_file = key_file
         self._cert_file = cert_file
 
-    async def send(self, message: Message) -> None:
-        await aiosmtplib.send(
-            message,
-            hostname=self._host,
-            port=self._port,
-            use_tls=self._use_tls,
-            username=self._user,
-            password=self._password,
-            timeout=self._timeout,
-            client_key=self._key_file,
-            client_cert=self._cert_file,
-        )
+    async def send(self, message: Message) -> SentMessage:
+        try:
+            await aiosmtplib.send(
+                message,
+                hostname=self._host,
+                port=self._port,
+                use_tls=self._use_tls,
+                username=self._user,
+                password=self._password,
+                timeout=self._timeout,
+                client_key=self._key_file,
+                client_cert=self._cert_file,
+            )
+        except aiosmtplib.errors.SMTPException as ex:  # pragma: no cover
+            return SentMessage(False, message, self, ex.message)
+        return SentMessage(True, message, self)
 
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> SMTPTransport:
