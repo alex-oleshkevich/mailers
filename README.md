@@ -21,6 +21,7 @@ from email.message import Messagefrom email.message import Message# Mailers for 
 * message signing via Signer interface (DKIM bundled)
 * message encryption via Encrypter interface
 * trio support via anyio
+* fallback transports
 
 ## Usage
 
@@ -181,6 +182,16 @@ class MyEncrypter(Encrypter):
     def encrypt(self, message: Message) -> Message:
         # message encrypting code here...
         return message
+```
+
+## High Availability
+
+You can pass multiples transports to the Mailer instance and it will iterate over them asking each to send a message. By
+default, the first transport is used but if it fails to send the message, the mailer will retry sending with the next
+transport in the chain.
+
+```python
+mailer = Mailer([transport1, transport2, ..., transportN])
 ```
 
 ## Plugins
