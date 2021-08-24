@@ -1,4 +1,4 @@
-# Mailers for asyncio
+from email.message import Messagefrom email.message import Message# Mailers for asyncio
 
 ![PyPI](https://img.shields.io/pypi/v/mailers)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/alex-oleshkevich/mailers/Lint)
@@ -7,12 +7,6 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/mailers)
 ![GitHub Release Date](https://img.shields.io/github/release-date/alex-oleshkevich/mailers)
 ![Lines of code](https://img.shields.io/tokei/lines/github/alex-oleshkevich/mailers)
-
-## Installation
-
-```bash
-pip install mailers
-```
 
 ## Features
 
@@ -30,10 +24,9 @@ pip install mailers
 
 ## Usage
 
-A little of theory. This library exposes two main concepts: mailers and transports. Mailers are high-level interfaces
-that you should use to send emails while transports are low-level drivers for mailers.
-
-Here is the example:
+```bash
+pip install mailers
+```
 
 ```python
 from mailers import create_mailer, Email
@@ -49,6 +42,14 @@ You can also send to multiple recipients by passing an iterable int `to` argumen
 message = Email(to=['user@localhost', 'user2@localhost', 'user@localhost'], ...)
 ```
 
+also you can change addresses any time you want:
+
+```python
+message.to.add('anotheruser@example.com', 'me@example.com')
+```
+
+same rule applies to `to`, `from_address`, `cc`, `bcc`, `reply_to` fields.
+
 ## Compose messages
 
 The arguments and methods of `Email ` class are self-explanatory so here is an kick-start example:
@@ -61,8 +62,8 @@ message = Email(
     from_address='from@example.tld',
     cc='cc@example.com',
     bcc=['bcc@example.com'],
-    text_body='Hello world!',
-    html_body='<b>Hello world!</b>',
+    text='Hello world!',
+    html='<b>Hello world!</b>',
 )
 ```
 
@@ -70,7 +71,7 @@ message = Email(
 
 ## Attachments
 
-Use `attach` and `attach_from_path` to add attachments.
+Use `attach`, `attach_from_path`, `attach_from_path_sync` methods to attach files.
 
 ```python
 from mailers import Email
@@ -89,8 +90,8 @@ message.attach('CONTENTS', 'file.txt', 'text/plain')
 
 ## Embedding files
 
-You can add embed files (eg. images) and then reference them in HTML. For that, use `embed` or `embed_from_path`
-methods.
+In the same way as with attachments, you can inline files into your messages. This is commonly used to display embedded
+images in the HTML body. Here are method you can use `embed`, `embed_from_path`, `embed_from_path_sync`.
 
 ```python
 from mailers import Email
@@ -104,12 +105,21 @@ message = Email(
 await message.embed_from_path(path='/path/to/image.png', name='img1')
 ```
 
-Here we attached a file from path and named it "img1". Then we referenced this file name in the HTML part in `<img>`
-tag: `<img src="cid:img1">`. `name` argument becomes are content identifier.
-
 Note, that you have to add HTML part to embed files. Otherwise, they will be ignored.
 
-## DKIM signing
+## Message signatures
+
+You can sign messages (e.g. with DKIM) by passing `signer` argument to the `Mailer` instance.
+
+```python
+signer = MySigner()
+mailer = Mailer(..., signer=signer)
+
+# or
+mailer = create_mailer(..., signer=signer)
+```
+
+### DKIM signing
 
 You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder.
 
@@ -131,6 +141,48 @@ Now all outgoing messages will be signed with DKIM method.
 
 The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
 
+## Custom signers
+
+Extend `mailers.Signer` class and implement `sign` method:
+
+```python
+from email.message import Message
+from mailers import Signer
+
+
+class MySigner(Signer):
+    def sign(self, message: Message) -> Message:
+        # message signing code here...
+        return message
+```
+
+## Encrypters
+
+When encrypting a message, the entire message (including attachments) is encrypted using a certificate. Therefore, only
+the recipients that have the corresponding private key can read the original message contents.
+
+````python
+encrypter = MyEncrypter()
+mailer = Mailer(..., encrypter=encrypter)
+````
+
+Now all message content will be encrypted.
+
+## Custom encrypters
+
+Extend `mailers.Encrypter` class and implement `encrypt` method:
+
+```python
+from email.message import Message
+from mailers import Encrypter
+
+
+class MyEncrypter(Encrypter):
+    def encrypt(self, message: Message) -> Message:
+        # message encrypting code here...
+        return message
+```
+
 ## Plugins
 
 Plugins let you inspect and modify outgoing messages before or after they are sent. The plugin is a class that
@@ -141,7 +193,7 @@ Below you see an example plugin:
 ```python
 from email.message import Message
 
-from mailers import BasePlugin, create_mailer, Mailer
+from mailers import BasePlugin, create_mailer, Mailer, SentMessages
 
 
 class PrintPlugin(BasePlugin):
@@ -149,8 +201,11 @@ class PrintPlugin(BasePlugin):
     async def on_before_send(self, message: Message) -> None:
         print('sending message %s.' % message)
 
-    async def on_after_send(self, message: Message) -> None:
+    async def on_after_send(self, message: Message, sent_messages: SentMessages) -> None:
         print('message has been sent %s.' % message)
+
+    async def on_send_error(self, message: Message, sent_messages: SentMessages) -> None:
+        print('error sending message %s.' % message)
 
 
 mailer = Mailer(plugins=[PrintPlugin()])
@@ -247,19 +302,19 @@ This is a preconfigured subclass of streaming transport. Writes to `sys.stderr` 
 **DSN:** `console://`
 **Options:**
 
-* `output` (typing.IO) - a writable stream
+* `output` (typing.IO) - a writeable stream
 
 ### Custom transports.
 
-Each transport must implement `mailers.transports.Transport` protocol. Preferably, inherit from `BaseTransport` class:
+Each transport must extend `mailers.transports.Transport` base class.
 
 ```python
 import typing as t
 from email.message import Message
-from mailers import BaseTransport, Mailer, Transport, EmailURL
+from mailers import Mailer, Transport, EmailURL, SentMessage
 
 
-class PrintTransport(BaseTransport):
+class PrintTransport(Transport):
     @classmethod
     def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
         # this method is optional,
@@ -267,8 +322,9 @@ class PrintTransport(BaseTransport):
         # returning None is the default behavior
         return None
 
-    async def send(self, message: Message) -> None:
+    async def send(self, message: Message) -> SentMessage:
         print(str(message))
+        return SentMessage(True, message, self)
 
 
 mailer = Mailer(PrintTransport())
