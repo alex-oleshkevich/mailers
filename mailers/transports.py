@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import abc
-import aiofiles
 import aiosmtplib
+import anyio as anyio
 import datetime
 import os
 import sys
@@ -13,16 +13,7 @@ from typing import Any, List, Union
 from .config import EmailURL
 
 
-class Transport(t.Protocol):  # pragma: nocover
-    async def send(self, message: Message) -> None:
-        ...
-
-    @classmethod
-    def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
-        ...
-
-
-class BaseTransport(abc.ABC):  # pragma: nocover
+class Transport(abc.ABC):  # pragma: nocover
     @abc.abstractmethod
     async def send(self, message: Message) -> None:
         raise NotImplementedError()
@@ -32,7 +23,7 @@ class BaseTransport(abc.ABC):  # pragma: nocover
         return None
 
 
-class FileTransport(BaseTransport):
+class FileTransport(Transport):
     def __init__(self, directory: str):
         if directory is None or directory == "":
             raise ValueError('Argument "path" of FileTransport cannot be None.')
@@ -42,8 +33,8 @@ class FileTransport(BaseTransport):
     async def send(self, message: Message) -> None:
         file_name = "message_%s.eml" % datetime.datetime.today().isoformat()
         output_file = os.path.join(self._directory, file_name)
-        async with aiofiles.open(output_file, "wb") as stream:
-            await stream.write(message.as_bytes())
+        async with await anyio.open_file(output_file, 'wb') as f:
+            await f.write(message.as_bytes())
 
     @classmethod
     def from_url(cls, url: Union[str, EmailURL]) -> FileTransport:
@@ -51,7 +42,7 @@ class FileTransport(BaseTransport):
         return cls(url.path)
 
 
-class NullTransport(BaseTransport):
+class NullTransport(Transport):
     async def send(self, message: Message) -> None:
         pass
 
@@ -60,7 +51,7 @@ class NullTransport(BaseTransport):
         return cls()
 
 
-class InMemoryTransport(BaseTransport):
+class InMemoryTransport(Transport):
     @property
     def mailbox(self) -> List[Message]:
         return self._storage
@@ -77,7 +68,7 @@ class InMemoryTransport(BaseTransport):
         return cls(mailbox)
 
 
-class StreamTransport(BaseTransport):
+class StreamTransport(Transport):
     def __init__(self, output: t.IO):
         self._output = output
 
@@ -103,7 +94,7 @@ class ConsoleTransport(StreamTransport):
         return ConsoleTransport(stream)
 
 
-class SMTPTransport(BaseTransport):
+class SMTPTransport(Transport):
     def __init__(
         self,
         host: str = "localhost",

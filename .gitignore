@@ -108,3 +108,4 @@ send_mail_test.py
 poetry.lock
 .idea
 secrets
+/Taskfile.yml

@@ -10,7 +10,12 @@ import asyncio
 import os
 import tempfile
 
-from mailers import Attachment, EmailMessage, create_mailer
+from mailers import create_mailer
+from mailers.message import Email
+
+MAILER_URL = os.environ.get('MAILER_URL', 'null://')
+MAILERS_RECIPIENT = os.environ.get('MAILERS_RECIPIENT', 'root@localhost')
+MAILERS_FROM_ADDRESS = os.environ.get('MAILERS_FROM_ADDRESS', 'sender@localhost')
 
 
 async def main():
@@ -18,32 +23,29 @@ async def main():
         tmp_file.write('temp file contents')
         tmp_file.seek(0)
 
-        message = EmailMessage(
-            to=os.environ.get('MAILERS_RECIPIENT', 'root@localhost'),
+        message = Email(
+            to=MAILERS_RECIPIENT,
             subject='Attachments test',
-            text_body='Hello, this is a test message with attachments.',
-            from_address=os.environ.get('MAILERS_FROM_ADDRESS', 'root@localhost'),
-            attachments=[
-                Attachment('file1_raw.txt', 'file1 content', 'text/plain'),
-            ],
+            text='Hello, this is a test message with attachments.',
+            from_address=MAILERS_FROM_ADDRESS,
         )
 
-        # inline attachments
-        message.add_attachment(Attachment('file2_inline.txt', 'file2 content', 'text/plain', disposition='inline'))
-
         # attach files dynamically
-        message.add_attachment(Attachment('file3_dyn.txt', 'file3 content', 'text/plain'))
+        message.attach('file3 content', 'file3_dyn.txt', 'text/plain')
 
         # unicode file names
-        message.add_attachment(Attachment('имя файла_cyr.txt', 'file3 content', 'text/plain'))
+        message.attach('file3 content', 'имя файла_cyr.txt', 'text/plain')
 
         # unicode file contents
-        message.add_attachment(Attachment('имя файла 2_cyr_content.txt', 'содержимое файла', 'text/plain'))
+        message.attach('содержимое файла', 'имя файла 2_cyr_content.txt', 'text/plain')
 
-        # read from file
-        await message.attach_file(tmp_file.name, 'file4.tmp')
+        # read from file asynchronously
+        await message.attach_from_path(tmp_file.name, 'file_async.tmp')
 
-        mailer = create_mailer(os.environ.get('MAILER_URL', 'null://'))
+        # read from file synchronously
+        message.attach_from_path_sync(tmp_file.name, 'file_sync.tmp')
+
+        mailer = create_mailer(MAILER_URL)
         await mailer.send(message)
 
 

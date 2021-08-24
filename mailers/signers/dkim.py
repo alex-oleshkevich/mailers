@@ -1,12 +1,11 @@
-import aiofiles
 import dkim
 import typing as t
 from email.message import Message
 
-from . import BasePlugin
+from mailers.signers.base import Signer
 
 
-class DkimSignature(BasePlugin):
+class DKIMSigner(Signer):
     def __init__(
         self,
         selector: str,
@@ -20,11 +19,15 @@ class DkimSignature(BasePlugin):
         self.dkim_key_path = private_key_path
         self.headers = headers or ['From', 'To', 'Subject']
 
-    async def on_before_send(self, message: Message) -> None:
+    def sign(self, message: Message) -> Message:
         key = self.dkim_key or ''
         if self.dkim_key_path:
-            async with aiofiles.open(self.dkim_key_path, 'r') as f:
-                key = await f.read()
+            # we read file once and then cache in this instance
+            # so it shouldn't bottleneck the flow.
+            # this is intentional, to avoid marking this method async
+            # if it doesn't work for you then pass key using "private_key" argument.
+            with open(self.dkim_key_path, 'r') as f:
+                key = f.read()
                 self.dkim_key = key  # cache
 
         from_address = message['From']
@@ -38,3 +41,4 @@ class DkimSignature(BasePlugin):
             include_headers=self.headers,
         )
         message.add_header("DKIM-Signature", signature[len("DKIM-Signature: ") :].decode().replace('\r\n', ' '))
+        return message

@@ -3,7 +3,8 @@ import pytest
 from aiosmtpd.controller import Controller
 from aiosmtpd.handlers import Message
 
-from mailers import EmailMessage, InMemoryTransport, Mailer
+from mailers import InMemoryTransport, Mailer
+from mailers.message import Email
 
 
 async def amain(handler):
@@ -46,15 +47,20 @@ def smtpd_server(smtpd_handler):
 
 @pytest.fixture
 def message():
-    return EmailMessage(
+    return Email(
         to="user@localhost",
         subject="subject",
-        text_body="contents",
+        text="contents",
         from_address="root@localhost",
-    )
+    ).build()
 
 
 @pytest.fixture()
 def mailer(mailbox):
     transport = InMemoryTransport(mailbox)
     return Mailer(transport)
+
+
+@pytest.fixture
+def email() -> Email:
+    return Email()

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mailers"
-version = "1.2.0"
+version = "2.0.0"
 description = "Email delivery for asyncio."
 authors = ["alex.oleshkevich <alex.oleshkevich@gmail.com>"]
 license = "MIT"
@@ -26,7 +26,8 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.8"
 aiosmtplib = "^1.1.6"
-aiofiles = { version = "^0.7.0", optional = true }
+dkimpy = { version = "^^1.0.5", optional = true }
+anyio = "^3.3.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
@@ -38,9 +39,6 @@ isort = "^5.9"
 black = "^21.7b0"
 mypy = "^0.910"
 flake8 = "^3.9.2"
-aiofiles = "^0.7.0"
-types-aiofiles = "^0.1.9"
-dkimpy = "^1.0.5"
 
 
 [build-system]

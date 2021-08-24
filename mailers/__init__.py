@@ -1,18 +1,12 @@
 from .config import EmailURL
+from .encrypters import Encrypter
 from .exceptions import MailersError
 from .factories import add_protocol_handler, create_mailer, create_transport_from_url
 from .mailer import Mailer
-from .message import Attachment, EmailMessage
+from .message import Email
 from .plugins import BasePlugin, Plugin
-from .transports import (
-    BaseTransport,
-    FileTransport,
-    InMemoryTransport,
-    NullTransport,
-    SMTPTransport,
-    StreamTransport,
-    Transport,
-)
+from .signers import Signer
+from .transports import FileTransport, InMemoryTransport, NullTransport, SMTPTransport, StreamTransport, Transport
 
 __all__ = [
     "Transport",
@@ -20,14 +14,14 @@ __all__ = [
     "SMTPTransport",
     "NullTransport",
     "FileTransport",
-    "BaseTransport",
     "StreamTransport",
     "MailersError",
-    "EmailMessage",
-    "Attachment",
+    "Email",
     "EmailURL",
     "Plugin",
     "BasePlugin",
+    "Signer",
+    "Encrypter",
     "Mailer",
     "create_mailer",
     "create_transport_from_url",

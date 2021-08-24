@@ -16,12 +16,17 @@ pip install mailers
 
 ## Features
 
+* fully typed
 * full utf-8 support
-* fully async
+* async and sync sending
 * pluggable transports
 * multiple built-in transports including: SMTP, file, null, in-memory, streaming, and console.
 * plugin system
-* DKIM signing
+* embeddables
+* attachments (with async and sync interfaces)
+* message signing via Signer interface (DKIM bundled)
+* message encryption via Encrypter interface
+* trio support via anyio
 
 ## Usage
 
@@ -31,9 +36,9 @@ that you should use to send emails while transports are low-level drivers for ma
 Here is the example:
 
 ```python
-from mailers import create_mailer, EmailMessage
+from mailers import create_mailer, Email
 
-message = EmailMessage(to='user@localhost', from_address='from@localhost', subject='Hello', text_body='World!')
+message = Email(to='user@localhost', from_address='from@localhost', subject='Hello', text='World!')
 mailer = create_mailer('smtp://user:password@localhost:25?timeout=2')
 await mailer.send(message)
 ```
@@ -41,17 +46,17 @@ await mailer.send(message)
 You can also send to multiple recipients by passing an iterable int `to` argument:
 
 ```python
-message = EmailMessage(to=['user@localhost', 'user2@localhost', 'user@localhost'], ...)
+message = Email(to=['user@localhost', 'user2@localhost', 'user@localhost'], ...)
 ```
 
 ## Compose messages
 
-The arguments and methods of `EmailMessage ` class are self-explanatory so here is an kick-start example:
+The arguments and methods of `Email ` class are self-explanatory so here is an kick-start example:
 
 ```python
-from mailers import EmailMessage, Attachment
+from mailers import Email
 
-message = EmailMessage(
+message = Email(
     to='user@localhost',
     from_address='from@example.tld',
     cc='cc@example.com',
@@ -65,70 +70,66 @@ message = EmailMessage(
 
 ## Attachments
 
-Use `attach_file` and `attach_content` to add attachments. Also, you can use `Attachment` class for more control.
+Use `attach` and `attach_from_path` to add attachments.
 
 ```python
-from mailers import EmailMessage, Attachment
+from mailers import Email
 
-message = EmailMessage(
-    to='user@localhost',
-    from_address='from@example.tld',
-    text_body='Hello world!',
-    attachments=[
-        Attachment('CONTENTS', 'file.txt', 'text/plain'),
-    ]
-)
+message = Email(to='user@localhost', from_address='from@example.tld', text='Hello world!')
 
-# attachments can be added on demand:
-await message.attach_file(path='file.txt')
+# attachments can be added on demand
+await message.attach_from_path('file.txt')
 
-# attach using a class
-message.add_attachment(Attachment('CONTENTS', 'file.txt', 'text/plain'))
+# or use blocking sync version
+message.attach_from_path_sync('file.txt')
 
-# or you may pass attachment contents directory
-message.attach_content(file_name='file.txt', content='HERE GO ATTACHMENT CONTENTS', mime_type='text/plain')
+# attach from variable
+message.attach('CONTENTS', 'file.txt', 'text/plain')
 ```
 
-## Inline attachments
+## Embedding files
 
-You can add inline attachments (eg. images) and then reference them in HTML. For that, set `inline=True` and
-specify `content_id=SOMEUNIQID` arguments in `attach_*` functions. Then you can reference images in HTML part like
-that `<img src="cid:SOMEUNIQID">"`.
+You can add embed files (eg. images) and then reference them in HTML. For that, use `embed` or `embed_from_path`
+methods.
 
 ```python
-from mailers import EmailMessage, Attachment
+from mailers import Email
 
-message = EmailMessage(
+message = Email(
     to='user@localhost',
     from_address='from@example.tld',
-    html_body='Render me <img src="cid:img1">',
+    html='Render me <img src="cid:img1">',
 )
 
-await message.attach_file(path='/path/to/image.png', inline=True, content_id='img1')
+await message.embed_from_path(path='/path/to/image.png', name='img1')
 ```
+
+Here we attached a file from path and named it "img1". Then we referenced this file name in the HTML part in `<img>`
+tag: `<img src="cid:img1">`. `name` argument becomes are content identifier.
+
+Note, that you have to add HTML part to embed files. Otherwise, they will be ignored.
 
 ## DKIM signing
 
-You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder. We provide a
-plugin for it.
+You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder.
 
-Note, you need to install [`dkimpy`](https://pypi.org/project/dkimpy/) package to start using this plugin.
+Note, you need to install [`dkimpy`](https://pypi.org/project/dkimpy/) package before using this feature.
 
 ```python
 from mailers import create_mailer
-from mailers.plugins.dkim import DkimSignature
+from mailers.signers.dkim import DKIMSigner
 
-dkim_plugin = DkimSignature(selector='default', private_key_path='/path/to/key.pem')
+signer = DKIMSigner(selector='default', private_key_path='/path/to/key.pem')
 
 # or you can put key content using private_key argument
-dkim_plugin = DkimSignature(selector='default', private_key='PRIVATE KEY GOES here...')
+signer = DKIMSigner(selector='default', private_key='PRIVATE KEY GOES here...')
 
-mailer = create_mailer('smtp://')
+mailer = create_mailer('smtp://', signer=signer)
 ```
 
-The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
+Now all outgoing messages will be signed with DKIM method.
 
-It is recommended to place DKIM plugin to the last place in the plugins list.
+The plugin signs "From", "To", "Subject" headers by default. Use "headers" argument to override it.
 
 ## Plugins
 
@@ -209,12 +210,12 @@ You can access the mailbox via ".mailbox" attribute.
 Example:
 
 ```python
-from mailers import Mailer, InMemoryTransport, EmailMessage
+from mailers import Mailer, InMemoryTransport, Email
 
 transport = InMemoryTransport([])
-mailer = Mailer(transport=transport)
+mailer = Mailer(transport)
 
-await mailer.send(EmailMessage(...))
+await mailer.send(Email(...))
 assert len(transport.mailbox) == 1  # here are all outgoing messages
 ```
 
@@ -235,7 +236,7 @@ import io
 from mailers import Mailer, StreamTransport
 
 transport = StreamTransport(output=io.StringIO())
-mailer = Mailer(transport=transport)
+mailer = Mailer(transport)
 ```
 
 ### Console transport
@@ -255,7 +256,7 @@ Each transport must implement `mailers.transports.Transport` protocol. Preferabl
 ```python
 import typing as t
 from email.message import Message
-from mailers import BaseTransport, Mailer, EmailMessage, Transport, EmailURL
+from mailers import BaseTransport, Mailer, Transport, EmailURL
 
 
 class PrintTransport(BaseTransport):
@@ -270,7 +271,7 @@ class PrintTransport(BaseTransport):
         print(str(message))
 
 
-mailer = Mailer(transport=PrintTransport())
+mailer = Mailer(PrintTransport())
 ```
 
 The library will call `Transport.from_url` when it needs to instantiate the transport instance from the URL. It is ok to

@@ -10,11 +10,13 @@ import asyncio
 import os
 from email.message import Message
 
-from mailers import BasePlugin, EmailMessage, create_mailer
+from mailers import BasePlugin, create_mailer
+from mailers.message import Email
 
 
 class PrintPlugin(BasePlugin):
     async def on_before_send(self, message: Message) -> None:
+        message.replace_header('Subject', '[CHANGED BY PLUGIN] ' + message['Subject'])
         print('sending message')
 
     async def on_after_send(self, message: Message) -> None:
@@ -22,10 +24,10 @@ class PrintPlugin(BasePlugin):
 
 
 async def main():
-    message = EmailMessage(
+    message = Email(
         to=os.environ.get('MAILERS_RECIPIENT', 'root@localhost'),
         subject='Plugin test',
-        text_body='Hello, this is a test message.',
+        text='Hello, this is a test message.',
         from_address=os.environ.get('MAILERS_FROM_ADDRESS', 'root@localhost'),
     )
     mailer = create_mailer(os.environ.get('MAILER_URL', 'null://'), plugins=[PrintPlugin()])

@@ -76,7 +76,7 @@ async def test_smtp_transport(message, smtpd_server, mailbox):
     assert isinstance(backend, transports.SMTPTransport)
 
     backend = transports.SMTPTransport(smtpd_server.hostname, smtpd_server.port, timeout=1)
-    await backend.send(message.to_mime_message())
+    await backend.send(message)
     assert len(mailbox) == 1
 
 

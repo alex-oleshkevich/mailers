@@ -1,9 +1,10 @@
 import dkim
-import pytest as pytest
+import pytest
 import tempfile
 
-from mailers import EmailMessage, InMemoryTransport, Mailer
-from mailers.plugins.dkim import DkimSignature
+from mailers import InMemoryTransport, Mailer
+from mailers.message import Email
+from mailers.signers.dkim import DKIMSigner
 
 KEY = """-----BEGIN RSA PRIVATE KEY-----
 MIICWwIBAAKBgQCjoXCMgp381vHOdixYTXXxIb+znulOdvq9lWr8U/eJIC/hmAZh
@@ -34,19 +35,12 @@ def _get_txt(*args, **kwargs) -> str:
 
 
 @pytest.mark.asyncio
-async def test_dkim_plugin():
+async def test_dkim_signer():
     mailbox = []
-    transport = InMemoryTransport(mailbox)
-    dkim_plugin = DkimSignature(selector='default', private_key=KEY)
-    mailer = Mailer(transport, plugins=[dkim_plugin])
-
-    message = EmailMessage(
-        to='root@localhost',
-        subject='DKIM check',
-        text_body='Hello, this is a test message to check the DKIM signature.',
-        from_address='reply@localhost',
-    )
-    await mailer.send(message)
+    signer = DKIMSigner(selector='default', private_key=KEY)
+    email = Email(from_address='sender@localhost', to='root@localhost', text='This is text content.')
+    mailer = Mailer(transports=InMemoryTransport(mailbox), signer=signer)
+    await mailer.send(email)
     message = mailbox[0]
     assert dkim.verify(message.as_bytes(), dnsfunc=_get_txt)
 
@@ -59,12 +53,12 @@ async def test_dkim_plugin_reads_key_from_file():
 
         mailbox = []
         transport = InMemoryTransport(mailbox)
-        dkim_plugin = DkimSignature(selector='default', private_key_path=f.name)
-        mailer = Mailer(transport, plugins=[dkim_plugin])
-        message = EmailMessage(
+        signer = DKIMSigner(selector='default', private_key_path=f.name)
+        mailer = Mailer(transport, signer=signer)
+        message = Email(
             to='root@localhost',
             subject='DKIM check',
-            text_body='Hello, this is a test message to check the DKIM signature.',
+            text='Hello, this is a test message to check the DKIM signature.',
             from_address='reply@localhost',
         )
         await mailer.send(message)

@@ -6,5 +6,9 @@ class NotRegisteredTransportError(MailersError):
     """Raised when transport is not registered but retrieved."""
 
 
-class BadHeaderError(MailersError):
-    """Raised if the header contains errors."""
+class InvalidSenderError(MailersError):
+    """Raised when From or Sender header is invalid."""
+
+
+class InvalidBodyError(MailersError):
+    """Raised when the message is empty."""

@@ -4,7 +4,6 @@ You need to setup several environment variables before you can use this script:
 
 * MAILERS_RECIPIENT - a recipient's email ("To" header)
 * MAILERS_FROM_ADDRESS - a sender address ("From" header)
-* MAILER_URL - mailer configuration URL
 """
 import asyncio
 import os
@@ -12,7 +11,11 @@ import sys
 import typing as t
 from email.message import Message
 
-from mailers import BaseTransport, EmailMessage, EmailURL, Transport, add_protocol_handler, create_mailer
+from mailers import BaseTransport, EmailURL, Transport, add_protocol_handler, create_mailer
+from mailers.message import Email
+
+MAILERS_RECIPIENT = os.environ.get('MAILERS_RECIPIENT', 'root@localhost')
+MAILERS_FROM_ADDRESS = os.environ.get('MAILERS_FROM_ADDRESS', 'sender@localhost')
 
 
 class PrintTransport(BaseTransport):
@@ -37,11 +40,11 @@ add_protocol_handler('print', PrintTransport)
 
 
 async def main():
-    message = EmailMessage(
-        to=os.environ.get('MAILERS_RECIPIENT', 'root@localhost'),
-        subject='Attachments test',
-        text_body='Hello, this is a test message with attachments.',
-        from_address=os.environ.get('MAILERS_FROM_ADDRESS', 'root@localhost'),
+    message = Email(
+        to=MAILERS_RECIPIENT,
+        subject='Custom transport URL test',
+        text='Hello, this is a test message.',
+        from_address=MAILERS_FROM_ADDRESS,
     )
     mailer = create_mailer('print://?stream=stdout')  # or stream=stderr
     await mailer.send(message)

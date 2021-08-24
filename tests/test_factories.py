@@ -1,11 +1,11 @@
 import pytest
 from email.message import Message
 
-from mailers import BaseTransport, NullTransport, add_protocol_handler, create_mailer, create_transport_from_url
+from mailers import NullTransport, Transport, add_protocol_handler, create_mailer, create_transport_from_url
 from mailers.exceptions import NotRegisteredTransportError
 
 
-class _DummyTransport(BaseTransport):  # pragma: no cover
+class _DummyTransport(Transport):  # pragma: no cover
     async def send(self, message: Message) -> None:
         pass
 
@@ -23,4 +23,4 @@ def test_raises_when_no_transport():
 
 def test_create_mailer_from_url():
     mailer = create_mailer('null://')
-    assert isinstance(mailer.transport, NullTransport)
+    assert isinstance(mailer.transports[0], NullTransport)
