@@ -4,7 +4,7 @@ import pathlib
 from mailers import Email, InMemoryTransport, Mailer, TemplatedEmail
 from mailers.plugins.jinja_renderer import JinjaRendererPlugin
 
-THIS_DIR = pathlib.Path().parent
+THIS_DIR = pathlib.Path(__file__).parent
 
 
 def test_renders_jinja_templates():
