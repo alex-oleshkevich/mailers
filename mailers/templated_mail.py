@@ -21,4 +21,5 @@ class TemplatedEmail(Email):
 
         self.html_template = html_template
         self.text_template = text_template
-        self.context = context
+        self.context = context or {}
+        self.context.update({'email': self})
