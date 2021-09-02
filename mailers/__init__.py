@@ -7,6 +7,7 @@ from .message import Email
 from .plugins import BasePlugin, Plugin
 from .result import SentMessage, SentMessages
 from .signers import Signer
+from .templated_mail import TemplatedEmail
 from .transports import FileTransport, InMemoryTransport, NullTransport, StreamTransport, Transport
 from .transports.smtp import SMTPTransport
 
@@ -30,4 +31,5 @@ __all__ = [
     "add_protocol_handler",
     "SentMessages",
     "SentMessage",
+    "TemplatedEmail",
 ]

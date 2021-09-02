@@ -3,6 +3,7 @@ from email.message import EmailMessage, Message
 from unittest import mock
 
 from mailers import Encrypter, InMemoryTransport, Mailer, SentMessage, Signer, Transport
+from mailers.exceptions import InvalidSenderError
 from mailers.message import Email
 
 
@@ -118,3 +119,67 @@ async def test_mailer_calls_encryptor():
     mailer = Mailer(memory_transport, encrypter=encrypter)
     await mailer.send(message)
     encrypter.spy.assert_called_once()
+
+
+def test_mailer_raises_if_no_sender_and_no_from():
+    """If message has no From, Sender headers and not defines a global from_address,
+    then it must raise."""
+    mailbox = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport)
+    email = Email(text='Message')
+    with pytest.raises(InvalidSenderError) as ex:
+        mailer.send_sync(email)
+    assert str(ex.value) == 'Message must have "From" or "Sender" header.'
+
+
+def test_mailer_not_raises_if_no_sender_and_from_exists():
+    """If message has no From, Sender headers and not defines a global from_address,
+    then it must raise."""
+    mailbox = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport)
+    email = Email(text='Message', from_address='root@localhost')
+    mailer.send_sync(email)
+    assert mailbox[0]['From'] == 'root@localhost'
+
+
+def test_mailer_not_raises_if_sender_and_no_from():
+    mailbox = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport)
+    email = Email(text='Message', sender='root@localhost')
+    mailer.send_sync(email)
+    assert mailbox[0]['Sender'] == 'root@localhost'
+
+
+def test_mailer_applies_global_from_if_no_sender_and_no_from_in_message():
+    mailbox = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport, from_address='root@localhost')
+    email = Email(text='Message')
+    mailer.send_sync(email)
+    assert mailbox[0]['From'] == 'root@localhost'
+
+    mime_mail = EmailMessage()
+    mailer.send_sync(mime_mail)
+    assert mailbox[0]['From'] == 'root@localhost'
+
+
+def test_mailer_uses_from_from_message():
+    mailbox = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport, from_address='user@localhost')
+    email = Email(text='Message', from_address='root@localhost')
+    mailer.send_sync(email)
+    assert mailbox[0]['From'] == 'root@localhost'
+
+
+def test_mailer_uses_sender_from_message():
+    mailbox = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport, from_address='user@localhost')
+    email = Email(text='Message', sender='root@localhost')
+    mailer.send_sync(email)
+    assert 'From' not in mailbox[0]['Sender']
+    assert mailbox[0]['Sender'] == 'root@localhost'

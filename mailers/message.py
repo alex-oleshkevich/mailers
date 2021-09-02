@@ -15,7 +15,7 @@ from email.mime.base import MIMEBase
 from email.policy import EmailPolicy
 
 import secrets
-from mailers.exceptions import InvalidBodyError, InvalidSenderError
+from mailers.exceptions import InvalidBodyError
 
 if t.TYPE_CHECKING:  # pragma: no cover
     from _typeshed import OpenBinaryMode, OpenTextMode
@@ -240,9 +240,6 @@ class Email:
     def validate(self) -> None:
         if all([self.text is None, self.html is None, not self._attachments]):
             raise InvalidBodyError('Email message must have a text, or HTML part or attachments.')
-
-        if not self.from_address and self.sender is None:
-            raise InvalidSenderError('An email must have a "From" or a "Sender" header.')
 
     def build(self) -> Message:  # noqa: C901
         self.validate()

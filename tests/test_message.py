@@ -6,7 +6,7 @@ import tempfile
 from email.message import EmailMessage, Message
 from email.mime.base import MIMEBase
 
-from mailers.exceptions import InvalidBodyError, InvalidSenderError
+from mailers.exceptions import InvalidBodyError
 from mailers.message import Email
 
 
@@ -449,12 +449,6 @@ def test_attach_part():
     mime_message = email.build()
     part: EmailMessage = mime_message.get_payload()[0]
     assert part.get_payload() == 'CONTENT'
-
-
-def test_validates_from_and_sender():
-    with pytest.raises(InvalidSenderError):
-        email = Email(text='Test')
-        email.build()
 
 
 def test_validates_content_presence():

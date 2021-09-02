@@ -22,6 +22,7 @@ from email.message import Messagefrom email.message import Message# Mailers for 
 * message encryption via Encrypter interface
 * trio support via anyio
 * fallback transports
+* global From address
 
 ## Usage
 
@@ -69,6 +70,17 @@ message = Email(
 ```
 
 `cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
+
+### Global From address
+
+Instead of setting "From" header in every message, you can set it mailer-wide. Use `from_address` argument of Mailer
+class:
+
+```python
+mailer = Mailer(from_address="sender@localhost")
+```
+
+The mailer will set From header with the given value to all messages that do not container From or Sender headers.
 
 ## Attachments
 

@@ -3,6 +3,7 @@ import typing as t
 from email.message import Message
 
 from .encrypters import Encrypter
+from .exceptions import InvalidSenderError
 from .message import Email
 from .plugins import Plugin
 from .result import SentMessages
@@ -31,7 +32,24 @@ class Mailer:
         self.plugins = plugins or []
 
     async def send(self, message: t.Union[Email, Message]) -> SentMessages:
+        from_ = message.from_address if isinstance(message, Email) else message.get('From')
+        sender_ = message.sender if isinstance(message, Email) else message.get('Sender')
+
+        if not from_ and not self.from_address and not sender_:
+            raise InvalidSenderError('Message must have "From" or "Sender" header.')
+
+        if not from_ and self.from_address:
+            if isinstance(message, Email):
+                message.from_address = self.from_address
+            else:
+                message['From'] = self.from_address
+
+        for plugin in self.plugins:
+            if isinstance(message, Email):
+                message = plugin.process_email(message)
+
         mime_message = message.build() if isinstance(message, Email) else message
+
         for plugin in self.plugins:
             await plugin.on_before_send(mime_message)
 
