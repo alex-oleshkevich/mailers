@@ -35,10 +35,11 @@ def create_mailer(
     url: t.Union[str, EmailURL],
     plugins: t.Iterable[Plugin] = None,
     signer: Signer = None,
+    from_address: str = None,
 ) -> Mailer:
     """Create mailer from URL configuration."""
     transport = create_transport_from_url(url)
-    return Mailer(transport, plugins=plugins, signer=signer)
+    return Mailer(transport, plugins=plugins, signer=signer, from_address=from_address)
 
 
 def add_protocol_handler(protocol: str, transport: t.Type[Transport]) -> None:

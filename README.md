@@ -23,6 +23,7 @@ from email.message import Messagefrom email.message import Message# Mailers for 
 * trio support via anyio
 * fallback transports
 * global From address
+* templated emails
 
 ## Usage
 
@@ -81,6 +82,38 @@ mailer = Mailer(from_address="sender@localhost")
 ```
 
 The mailer will set From header with the given value to all messages that do not container From or Sender headers.
+
+## Using templates
+
+You can use any template engine with a special email class called `TemplatedEmail`. This class extends `Email` with
+following arguments:
+
+* `html_template`  - a template for use in HTML part
+* `text_template`  - a template for use in text part
+* `context` - a template context
+
+Then, you need to use appropriate plugin that can render the email message.
+
+Out of the box, we provide a Jinja adapter.
+
+### Use Jinja2 engine
+
+You can use Jinja template engine to render your emails. Add `JinjaRendererPlugin` with a
+preconfigured `jinja2.Environment` instance. Then, use `mailers.TemplatedEmail` instead of `mailers.Email` to configure
+templated mail.
+
+```python
+import jinja2
+
+from mailers import Mailer, TemplatedEmail
+from mailers.plugins.jinja_renderer import JinjaRendererPlugin
+
+env = jinja2.Environment(loader=jinja2.FileSystemLoader(['templates']))
+mailer = Mailer(plugins=[JinjaRendererPlugin])
+
+email = TemplatedEmail(subject='Hello', text_template='mail.txt', html_template='mail.html', context={'user': 'root'})
+mailer.send(email)
+```
 
 ## Attachments
 
