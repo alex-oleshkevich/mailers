@@ -14,6 +14,9 @@ class JinjaRendererPlugin(BasePlugin):
         if not isinstance(email, TemplatedEmail):
             return email
 
+        context = email.context or {}
+        context.update({'email': email})
+
         if not email.html and email.html_template:
             template = self.env.get_template(email.html_template)
             email.html = template.render(email.context)
