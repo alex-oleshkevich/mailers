@@ -1,4 +1,4 @@
-from email.message import Messagefrom email.message import Message# Mailers for asyncio
+# Mailers for asyncio
 
 ![PyPI](https://img.shields.io/pypi/v/mailers)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/alex-oleshkevich/mailers/Lint)
