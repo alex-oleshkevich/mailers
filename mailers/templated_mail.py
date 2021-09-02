@@ -1,3 +1,5 @@
+import typing as t
+
 from mailers.message import Email
 
 
@@ -12,8 +14,8 @@ class TemplatedEmail(Email):
         html_template: str = None,
         text_template: str = None,
         context: dict = None,
-        *args,
-        **kwargs,
+        *args: t.Any,
+        **kwargs: t.Any,
     ) -> None:
         super().__init__(*args, **kwargs)
 
