@@ -48,6 +48,14 @@ aiosmtplib = "*"
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 
+[tool.poetry.extras]
+jinja2 = ["jinja2"]
+smtp = ["aiosmtplib"]
+dkim = ["dkimpy"]
+
+[tool.poetry.plugins.pytest11]
+mailers = "mailers.pytest_plugin"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

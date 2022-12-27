@@ -3,9 +3,14 @@ import typing
 from email.message import EmailMessage
 from unittest import mock
 
-from mailers import Encrypter, InMemoryTransport, Mailer, Signer, Transport
+from mailers import Encrypter, InMemoryTransport, Mailer, NullTransport, Signer, Transport
 from mailers.exceptions import InvalidSenderError
 from mailers.message import Email
+
+
+def test_mailer_creates_transport_from_string() -> None:
+    mailer = Mailer("null://")
+    assert isinstance(mailer.transport, NullTransport)
 
 
 @pytest.mark.asyncio

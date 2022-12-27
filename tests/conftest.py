@@ -3,6 +3,7 @@ import pytest
 import typing
 from aiosmtpd import smtp
 from aiosmtpd.controller import Controller
+from aiosmtpd.handlers import Message as MessageHandler
 from email.message import EmailMessage
 
 from mailers import InMemoryTransport, Mailer
@@ -15,7 +16,7 @@ async def amain(handler: typing.Any) -> Controller:
     return cont
 
 
-class RecordingHandler(EmailMessage):
+class RecordingHandler(MessageHandler):
     def __init__(self, mailbox: typing.List[EmailMessage]) -> None:
         self.messages = mailbox
         super().__init__()

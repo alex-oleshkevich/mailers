@@ -4,6 +4,7 @@ import aiosmtplib
 import typing
 from email.message import Message
 
+from mailers.exceptions import DeliveryError
 from mailers.transports.base import Transport
 
 
@@ -29,7 +30,7 @@ class SMTPTransport(Transport):
         self._cert_file = cert_file
 
     async def send(self, message: Message) -> None:
-        await aiosmtplib.send(
+        _, status = await aiosmtplib.send(
             message,
             hostname=self._host,
             port=self._port,
@@ -40,3 +41,5 @@ class SMTPTransport(Transport):
             client_key=self._key_file,
             client_cert=self._cert_file,
         )
+        if status != "OK":
+            raise DeliveryError(f"Failed to send email via SMTP transport: {status}")
