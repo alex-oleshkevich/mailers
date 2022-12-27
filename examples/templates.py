@@ -21,7 +21,7 @@ THIS_DIR = pathlib.Path(__file__).parent
 
 
 async def main() -> None:
-    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR / "templates"))
+    jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR / "templates"), autoescape=True)
     mailer = TemplatedMailer(MAILER_URL, jinja_env=jinja_env)
     await mailer.send_templated_message(
         to=MAILERS_RECIPIENT,
