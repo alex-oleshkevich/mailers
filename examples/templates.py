@@ -12,8 +12,7 @@ import jinja2
 import os
 import pathlib
 
-from mailers import Mailer, TemplatedEmail
-from mailers.plugins.jinja_renderer import JinjaRendererPlugin
+from mailers import TemplatedMailer
 
 MAILER_URL = os.environ.get("MAILER_URL", "null://")
 MAILERS_RECIPIENT = os.environ.get("MAILERS_RECIPIENT", "root@localhost")
@@ -23,16 +22,14 @@ THIS_DIR = pathlib.Path(__file__).parent
 
 async def main() -> None:
     jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(THIS_DIR / "templates"))
-    mailer = Mailer(MAILER_URL, plugins=[JinjaRendererPlugin(jinja_env)])
-    await mailer.send(
-        TemplatedEmail(
-            to=MAILERS_RECIPIENT,
-            from_address="root@localhost",
-            subject="Test message",
-            text_template="mail.txt",
-            html_template="mail.html",
-            context={"hello": "world"},
-        )
+    mailer = TemplatedMailer(MAILER_URL, jinja_env=jinja_env)
+    await mailer.send_templated_message(
+        to=MAILERS_RECIPIENT,
+        from_address="root@localhost",
+        subject="Test message",
+        text_template="mail.txt",
+        html_template="mail.html",
+        template_context={"hello": "world"},
     )
 
 

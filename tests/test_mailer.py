@@ -4,7 +4,7 @@ from email.message import EmailMessage
 from unittest import mock
 
 from mailers import Encrypter, InMemoryTransport, Mailer, NullTransport, Signer, Transport
-from mailers.exceptions import InvalidSenderError
+from mailers.exceptions import DeliveryError, InvalidSenderError
 from mailers.message import Email
 
 
@@ -167,3 +167,22 @@ async def test_mailer_uses_sender_from_message() -> None:
     await mailer.send(email)
     assert "From" not in mailbox[0]["Sender"]
     assert mailbox[0]["Sender"] == "root@localhost"
+
+
+@pytest.mark.asyncio
+async def test_mailer_send_message_shortcut() -> None:
+    mailbox: typing.List[EmailMessage] = []
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport, from_address="user@localhost")
+    await mailer.send_message(to="roo@localhost", subject="Hello", text="World")
+    assert len(mailbox)
+
+
+@pytest.mark.asyncio
+async def test_mailer_raises_delivery_error() -> None:
+    mailbox: typing.List[EmailMessage] = []
+    memory_transport = InMemoryTransport(mailbox)
+    with mock.patch.object(memory_transport, "send", side_effect=ValueError):
+        with pytest.raises(DeliveryError, match="Failed to deliver email message"):
+            mailer = Mailer(memory_transport, from_address="user@localhost")
+            await mailer.send_message(to="roo@localhost", subject="Hello", text="World")

@@ -6,5 +6,5 @@ Mailbox: typing.TypeAlias = typing.List[EmailMessage]
 
 
 @pytest.fixture
-def mailbox() -> Mailbox:
+def mailbox() -> Mailbox:  # pragma: nocover
     return []

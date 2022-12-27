@@ -4,7 +4,7 @@ import typing
 from aiosmtpd import smtp
 from aiosmtpd.controller import Controller
 from aiosmtpd.handlers import Message as MessageHandler
-from email.message import EmailMessage
+from email.message import EmailMessage, Message
 
 from mailers import InMemoryTransport, Mailer
 from mailers.message import Email
@@ -21,8 +21,8 @@ class RecordingHandler(MessageHandler):
         self.messages = mailbox
         super().__init__()
 
-    def handle_message(self, message: EmailMessage) -> None:
-        self.messages.append(message)
+    def handle_message(self, message: Message) -> None:
+        self.messages.append(typing.cast(EmailMessage, message))
 
     async def handle_EHLO(
         self,
