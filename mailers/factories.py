@@ -33,13 +33,13 @@ def create_transport_from_url(url: str) -> Transport:
         def _cast_to_bool(value: str) -> bool:
             return value.lower() in ["yes", "1", "on", "true"]
 
-        timeout: str | int | None = options.get("timeout", None)
+        timeout: typing.Union[str, int, None] = options.get("timeout", None)
         if timeout is not None:
             timeout = int(timeout)
 
         use_tls = _cast_to_bool(options.get("use_tls", ""))
-        key_file: str | None = options.get("key_file", None)
-        cert_file: str | None = options.get("cert_file", None)
+        key_file: typing.Optional[str] = options.get("key_file", None)
+        cert_file: typing.Optional[str] = options.get("cert_file", None)
 
         return SMTPTransport(
             components.hostname or "localhost",

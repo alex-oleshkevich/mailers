@@ -20,7 +20,7 @@ repos:
         rev: 5.11.4
         hooks:
             -   id: isort
-                args: [ --settings-path=pyproject.toml ]
+                args: [ --settings-path=pyproject.toml, --version ]
 
     -   repo: https://github.com/psf/black.git
         rev: 22.12.0
