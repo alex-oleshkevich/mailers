@@ -1,26 +1,46 @@
 import pytest
-from email.message import Message
+import sys
 
-from mailers import NullTransport, Transport, add_protocol_handler, create_mailer, create_transport_from_url
+from mailers import FileTransport, InMemoryTransport, NullTransport, SMTPTransport, create_transport_from_url
 from mailers.exceptions import NotRegisteredTransportError
+from mailers.transports import ConsoleTransport
 
 
-class _DummyTransport(Transport):  # pragma: no cover
-    async def send(self, message: Message) -> None:
-        pass
-
-
-def test_protocol_handlers():
-    add_protocol_handler('dummy', _DummyTransport)
-    assert type(create_transport_from_url('dummy://')) == _DummyTransport
-
-
-def test_raises_when_no_transport():
-    with pytest.raises(NotRegisteredTransportError) as ex:
+def test_raises_when_no_transport() -> None:
+    with pytest.raises(NotRegisteredTransportError, match="for protocol 'invalid'"):
         create_transport_from_url("invalid://")
-    assert str(ex.value) == 'No transport found with scheme "invalid".'
 
 
-def test_create_mailer_from_url():
-    mailer = create_mailer('null://')
-    assert isinstance(mailer.transports[0], NullTransport)
+@pytest.mark.asyncio
+async def test_console_transport_from_url() -> None:
+    transport = create_transport_from_url("console://?stream=stdout")
+    assert isinstance(transport, ConsoleTransport)
+    assert transport.stream == sys.stdout
+
+
+@pytest.mark.asyncio
+async def test_file_transport_from_url() -> None:
+    transport = create_transport_from_url("file:///tmp")
+    assert isinstance(transport, FileTransport)
+    assert transport.directory == "/tmp"
+
+    with pytest.raises(ValueError, match='Argument "path" of FileTransport cannot be None.'):
+        create_transport_from_url("file://")
+
+
+@pytest.mark.asyncio
+async def test_memory_transport_from_url() -> None:
+    transport = create_transport_from_url("memory://")
+    assert isinstance(transport, InMemoryTransport)
+
+
+@pytest.mark.asyncio
+async def test_null_transport_from_url() -> None:
+    transport = create_transport_from_url("null://")
+    assert isinstance(transport, NullTransport)
+
+
+@pytest.mark.asyncio
+async def test_smtp_transport_from_url() -> None:
+    transport = create_transport_from_url("smtp://?timeout=1")
+    assert isinstance(transport, SMTPTransport)

@@ -1,14 +1,12 @@
-import typing as t
+import typing
 from email.message import Message
 
-from mailers.result import SentMessage
 from mailers.transports.base import Transport
 
 
 class StreamTransport(Transport):
-    def __init__(self, output: t.IO):
-        self._output = output
+    def __init__(self, output: typing.IO) -> None:
+        self.stream = output
 
-    async def send(self, message: Message) -> SentMessage:
-        self._output.write(str(message))
-        return SentMessage(True, message, self)
+    async def send(self, message: Message) -> None:
+        self.stream.write(str(message))

@@ -3,455 +3,456 @@ import email.utils as email_utils
 import os
 import pytest
 import tempfile
-from email.message import EmailMessage, Message
+import typing
+from email.message import EmailMessage
 from email.mime.base import MIMEBase
 
 from mailers.exceptions import InvalidBodyError
 from mailers.message import Email
 
 
-def test_email_subject(email):
-    email.subject = 'Hello'
-    assert email.subject == 'Hello'
+def test_email_subject(email: Email) -> None:
+    email.subject = "Hello"
+    assert email.subject == "Hello"
 
-    email.subject = 'çéîщ 😀'
-    assert email.subject == 'çéîщ 😀'
+    email.subject = "çéîщ 😀"
+    assert email.subject == "çéîщ 😀"
 
 
-_mapping = {
-    'to': 'To',
-    'cc': 'Cc',
-    'bcc': 'Bcc',
-    'reply_to': 'Reply-To',
-    'from_address': 'From',
+_mapping: typing.Dict[str, str] = {
+    "to": "To",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "reply_to": "Reply-To",
+    "from_address": "From",
 }
 
 
-def get_header(message: Message, prop: str) -> str:
+def get_header(message: EmailMessage, prop: str) -> str:
     return message[_mapping[prop]]
 
 
-@pytest.mark.parametrize('prop', ['to', 'cc', 'bcc', 'reply_to', 'from_address'])
-def test_email_adds_address_header(prop):
-    email = Email(text='Test message.', from_address='sender@localhost')
+@pytest.mark.parametrize("prop", ["to", "cc", "bcc", "reply_to", "from_address"])
+def test_email_adds_address_header(prop: str) -> None:
+    email = Email(text="Test message.", from_address="sender@localhost")
     attr = getattr(email, prop)
-    if prop == 'from_address':
+    if prop == "from_address":
         attr.clear()
 
-    attr.add('root@localhost')
-    attr.add('User <user@localhost>')
+    attr.add("root@localhost")
+    attr.add("User <user@localhost>")
 
-    assert get_header(email.build(), prop) == 'root@localhost, User <user@localhost>'
+    assert get_header(email.build(), prop) == "root@localhost, User <user@localhost>"
 
 
-@pytest.mark.parametrize('prop', ['to', 'cc', 'bcc', 'reply_to', 'from_address'])
-def test_email_overwrites_address_header(prop):
+@pytest.mark.parametrize("prop", ["to", "cc", "bcc", "reply_to", "from_address"])
+def test_email_overwrites_address_header(prop: str) -> None:
     email = Email(
-        to=['user@localhost', 'user2@localhost'],
-        cc=['user@localhost', 'user2@localhost'],
-        bcc=['user@localhost', 'user2@localhost'],
-        reply_to=['user@localhost', 'user2@localhost'],
-        from_address=['user@localhost', 'user2@localhost'],
-        sender='sender@localhost',
-        text='Test message.',
+        to=["user@localhost", "user2@localhost"],
+        cc=["user@localhost", "user2@localhost"],
+        bcc=["user@localhost", "user2@localhost"],
+        reply_to=["user@localhost", "user2@localhost"],
+        from_address=["user@localhost", "user2@localhost"],
+        sender="sender@localhost",
+        text="Test message.",
     )
-    setattr(email, prop, 'root@localhost')
+    setattr(email, prop, "root@localhost")
 
-    assert get_header(email.build(), prop) == 'root@localhost'
+    assert get_header(email.build(), prop) == "root@localhost"
 
 
-@pytest.mark.parametrize('prop', ['to', 'cc', 'bcc', 'reply_to', 'from_address'])
-def test_email_adds_multiple_recipients_at_once(prop):
-    email = Email(from_address='sender@localhost', text='Test message.')
+@pytest.mark.parametrize("prop", ["to", "cc", "bcc", "reply_to", "from_address"])
+def test_email_adds_multiple_recipients_at_once(prop: str) -> None:
+    email = Email(from_address="sender@localhost", text="Test message.")
     attr = getattr(email, prop)
-    if prop == 'from_address':
+    if prop == "from_address":
         attr.clear()
 
-    attr.add('root@localhost', 'User <user@localhost>')
+    attr.add("root@localhost", "User <user@localhost>")
 
-    assert get_header(email.build(), prop) == 'root@localhost, User <user@localhost>'
-
-
-@pytest.mark.parametrize('prop', ['to', 'cc', 'bcc', 'reply_to', 'from_address'])
-def test_email_sets_string_recipient_via_constructor(prop):
-    kwargs = {prop: 'root@localhost'}
-    if prop != 'from_address':
-        kwargs['from_address'] = 'sender@localhost'
-    email = Email(**kwargs, text='Test message.')
-    assert get_header(email.build(), prop) == 'root@localhost'
+    assert get_header(email.build(), prop) == "root@localhost, User <user@localhost>"
 
 
-@pytest.mark.parametrize('prop', ['to', 'cc', 'bcc', 'reply_to', 'from_address'])
-def test_email_sets_fqual_address_via_constructor(prop):
-    kwargs = {prop: 'Root <root@localhost>'}
+@pytest.mark.parametrize("prop", ["to", "cc", "bcc", "reply_to", "from_address"])
+def test_email_sets_string_recipient_via_constructor(prop: str) -> None:
+    kwargs: typing.Dict[str, typing.Any] = {prop: "root@localhost"}
+    if prop != "from_address":
+        kwargs["from_address"] = "sender@localhost"
+    email = Email(**kwargs, text="Test message.")
+    assert get_header(email.build(), prop) == "root@localhost"
+
+
+@pytest.mark.parametrize("prop", ["to", "cc", "bcc", "reply_to", "from_address"])
+def test_email_sets_fqual_address_via_constructor(prop: str) -> None:
+    kwargs: typing.Dict[str, typing.Any] = {prop: "Root <root@localhost>"}
     email = Email(**kwargs)
-    assert getattr(email, prop) == 'Root <root@localhost>'
+    assert getattr(email, prop) == "Root <root@localhost>"
 
 
-@pytest.mark.parametrize('prop', ['to', 'cc', 'bcc', 'reply_to', 'from_address'])
-def test_email_extends_addresses_set_by_constructor(prop):
-    kwargs = {prop: ['Root <root@localhost>', 'user@localhost']}
-    if prop != 'from_address':
-        kwargs['from_address'] = 'sender@localhost'
+@pytest.mark.parametrize("prop", ["to", "cc", "bcc", "reply_to", "from_address"])
+def test_email_extends_addresses_set_by_constructor(prop: str) -> None:
+    kwargs: typing.Dict[str, typing.Any] = {prop: ["Root <root@localhost>", "user@localhost"]}
+    if prop != "from_address":
+        kwargs["from_address"] = "sender@localhost"
 
     email = Email(**kwargs)
     attr = getattr(email, prop)
-    attr.add('user2@localhost')
-    assert attr == 'Root <root@localhost>, user@localhost, user2@localhost'
+    attr.add("user2@localhost")
+    assert attr == "Root <root@localhost>, user@localhost, user2@localhost"
 
 
-def test_sets_sender():
-    email = Email(sender='sender@localhost', text='', from_address='from@localhost')
-    assert email.build()['Sender'] == 'sender@localhost'
+def test_sets_sender() -> None:
+    email = Email(sender="sender@localhost", text="", from_address="from@localhost")
+    assert email.build()["Sender"] == "sender@localhost"
 
-    email.sender = 'sender2@localhost'
-    assert email.build()['Sender'] == 'sender2@localhost'
+    email.sender = "sender2@localhost"  # type: ignore[assignment]
+    assert email.build()["Sender"] == "sender2@localhost"
 
     email.sender = None
-    assert 'Sender' not in email.build()
+    assert "Sender" not in email.build()
 
 
-def test_email_sets_custom_headers_via_constructor():
-    email = Email(headers={'X-Custom': 'Value'}, from_address='sender@localhost', text='Test message.')
-    assert email.headers['X-Custom'] == 'Value'
-    assert email.build()['X-Custom'] == 'Value'
+def test_email_sets_custom_headers_via_constructor() -> None:
+    email = Email(headers={"X-Custom": "Value"}, from_address="sender@localhost", text="Test message.")
+    assert email.headers["X-Custom"] == "Value"
+    assert email.build()["X-Custom"] == "Value"
 
 
-def test_adds_date_header_in_constructor(monkeypatch):
+def test_adds_date_header_in_constructor(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime.datetime(2021, 1, 1, 0, 0, 0)
-    monkeypatch.setattr(email_utils, 'localtime', lambda: now)
-    email = Email(from_address='sender@localhost', text='Test message.')
-    assert email.build()['Date'] == 'Fri, 01 Jan 2021 00:00:00 -0000'
+    monkeypatch.setattr(email_utils, "localtime", lambda: now)
+    email = Email(from_address="sender@localhost", text="Test message.")
+    assert email.build()["Date"] == "Fri, 01 Jan 2021 00:00:00 -0000"
 
 
-def test_changes_date_header(monkeypatch):
+def test_changes_date_header(monkeypatch: pytest.MonkeyPatch) -> None:
     now = datetime.datetime(2021, 1, 1, 0, 0, 0)
     hour_later = datetime.datetime(2021, 1, 1, 1, 0, 0)
-    monkeypatch.setattr(email_utils, 'localtime', lambda: now)
-    email = Email(from_address='sender@localhost', text='Test message.')
+    monkeypatch.setattr(email_utils, "localtime", lambda: now)
+    email = Email(from_address="sender@localhost", text="Test message.")
     email.date = hour_later
 
-    assert email.build()['Date'] == 'Fri, 01 Jan 2021 01:00:00 -0000'
+    assert email.build()["Date"] == "Fri, 01 Jan 2021 01:00:00 -0000"
 
 
-def test_requires_html_or_text_or_attachment_parts():
-    email = Email(from_address='sender@localhost')
+def test_requires_html_or_text_or_attachment_parts() -> None:
+    email = Email(from_address="sender@localhost")
     with pytest.raises(InvalidBodyError) as ex:
         email.build()
-    assert str(ex.value) == 'Email message must have a text, or HTML part or attachments.'
+    assert str(ex.value) == "Email message must have a text, or HTML part or attachments."
 
-    email = Email(from_address='sender@localhost', text='Text')
+    email = Email(from_address="sender@localhost", text="Text")
     assert email.build()
 
-    email = Email(from_address='sender@localhost', html='HTML')
+    email = Email(from_address="sender@localhost", html="HTML")
     assert email.build()
 
-    email = Email(from_address='sender@localhost')
-    email.attach('body')
+    email = Email(from_address="sender@localhost")
+    email.attach("body")
     assert email.build()
 
 
-def test_generates_text_only_message():
-    email = Email(from_address='sender@localhost', to='root@localhost', text='Test message.')
+def test_generates_text_only_message() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost", text="Test message.")
     mime_message = email.build()
     assert mime_message.is_multipart() is False
-    assert mime_message.get_payload() == 'Test message.\n'
+    assert mime_message.get_payload() == "Test message.\n"
 
 
-def test_generates_html_only_message():
-    email = Email(from_address='sender@localhost', to='root@localhost', html='Test message.')
+def test_generates_html_only_message() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost", html="Test message.")
     mime_message = email.build()
     assert mime_message.is_multipart() is False
-    assert mime_message.get_payload() == 'Test message.\n'
+    assert mime_message.get_payload() == "Test message.\n"
 
 
-def test_generates_attachments_only_message():
-    email = Email(from_address='sender@localhost', to='root@localhost')
-    email.attach('one', 'file1.txt')
-    email.attach('two', 'file2.txt')
+def test_generates_attachments_only_message() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost")
+    email.attach("one", "file1.txt")
+    email.attach("two", "file2.txt")
     mime_message = email.build()
-    assert mime_message.get_content_type() == 'multipart/mixed'
+    assert mime_message.get_content_type() == "multipart/mixed"
     assert mime_message.is_multipart() is True
-    assert mime_message.get_payload()[0].get_content() == b'one'
-    assert mime_message.get_payload()[1].get_content() == b'two'
+    assert mime_message.get_payload()[0].get_content() == b"one"
+    assert mime_message.get_payload()[1].get_content() == b"two"
 
 
-def test_generates_text_and_html_message():
+def test_generates_text_and_html_message() -> None:
     email = Email(
-        from_address='sender@localhost',
-        to='root@localhost',
-        text='Text message.',
-        html='HTML message.',
-        headers={'X-Custom': 'x-value'},
+        from_address="sender@localhost",
+        to="root@localhost",
+        text="Text message.",
+        html="HTML message.",
+        headers={"X-Custom": "x-value"},
     )
     mime_message = email.build()
     assert mime_message.is_multipart() is True
-    assert mime_message['From'] == 'sender@localhost'
-    assert mime_message['To'] == 'root@localhost'
-    assert mime_message['X-Custom'] == 'x-value'
-    assert mime_message.get_content_type() == 'multipart/alternative'
-    assert mime_message.get_payload()[0].get_content_type() == 'text/plain'
-    assert mime_message.get_payload()[0].get_payload() == 'Text message.\n'
-    assert mime_message.get_payload()[1].get_content_type() == 'text/html'
-    assert mime_message.get_payload()[1].get_payload() == 'HTML message.\n'
+    assert mime_message["From"] == "sender@localhost"
+    assert mime_message["To"] == "root@localhost"
+    assert mime_message["X-Custom"] == "x-value"
+    assert mime_message.get_content_type() == "multipart/alternative"
+    assert mime_message.get_payload()[0].get_content_type() == "text/plain"
+    assert mime_message.get_payload()[0].get_payload() == "Text message.\n"
+    assert mime_message.get_payload()[1].get_content_type() == "text/html"
+    assert mime_message.get_payload()[1].get_payload() == "HTML message.\n"
 
 
-def test_generates_text_and_html_and_related_message():
+def test_generates_text_and_html_and_related_message() -> None:
     email = Email(
-        from_address='sender@localhost',
-        to='root@localhost',
-        text='Text message.',
-        html='HTML message.',
-        headers={'X-Custom': 'x-value'},
+        from_address="sender@localhost",
+        to="root@localhost",
+        text="Text message.",
+        html="HTML message.",
+        headers={"X-Custom": "x-value"},
     )
-    email.embed(b'CONTENT', 'content', 'application/octet-stream')
+    email.embed(b"CONTENT", "content", "application/octet-stream")
     mime_message = email.build()
     assert mime_message.is_multipart() is True
-    assert mime_message['From'] == 'sender@localhost'
-    assert mime_message['To'] == 'root@localhost'
-    assert mime_message['X-Custom'] == 'x-value'
-    assert mime_message.get_content_type() == 'multipart/alternative'
+    assert mime_message["From"] == "sender@localhost"
+    assert mime_message["To"] == "root@localhost"
+    assert mime_message["X-Custom"] == "x-value"
+    assert mime_message.get_content_type() == "multipart/alternative"
 
     text_part = mime_message.get_payload()[0]
-    assert text_part.get_content_type() == 'text/plain'
+    assert text_part.get_content_type() == "text/plain"
 
     html_part = mime_message.get_payload()[1]
-    assert html_part.get_content_type() == 'multipart/related'
-    assert html_part.get_payload()[0].get_content_type() == 'text/html'
-    assert html_part.get_payload()[1].get_content_type() == 'application/octet-stream'
-    assert html_part.get_payload()[1].get_content() == b'CONTENT'
+    assert html_part.get_content_type() == "multipart/related"
+    assert html_part.get_payload()[0].get_content_type() == "text/html"
+    assert html_part.get_payload()[1].get_content_type() == "application/octet-stream"
+    assert html_part.get_payload()[1].get_content() == b"CONTENT"
 
 
-def test_generates_html_and_related_message():
+def test_generates_html_and_related_message() -> None:
     email = Email(
-        from_address='sender@localhost',
-        to='root@localhost',
-        html='HTML message.',
-        headers={'X-Custom': 'x-value'},
+        from_address="sender@localhost",
+        to="root@localhost",
+        html="HTML message.",
+        headers={"X-Custom": "x-value"},
     )
-    email.embed(b'CONTENT', 'content', 'application/octet-stream')
+    email.embed(b"CONTENT", "content", "application/octet-stream")
     mime_message = email.build()
     assert mime_message.is_multipart() is True
-    assert mime_message['From'] == 'sender@localhost'
-    assert mime_message['To'] == 'root@localhost'
-    assert mime_message['X-Custom'] == 'x-value'
-    assert mime_message.get_content_type() == 'multipart/alternative'
+    assert mime_message["From"] == "sender@localhost"
+    assert mime_message["To"] == "root@localhost"
+    assert mime_message["X-Custom"] == "x-value"
+    assert mime_message.get_content_type() == "multipart/alternative"
 
     html_part = mime_message.get_payload()[0]
-    assert html_part.get_content_type() == 'multipart/related'
-    assert html_part.get_payload()[0].get_content_type() == 'text/html'
-    assert html_part.get_payload()[1].get_content_type() == 'application/octet-stream'
-    assert html_part.get_payload()[1].get_content() == b'CONTENT'
+    assert html_part.get_content_type() == "multipart/related"
+    assert html_part.get_payload()[0].get_content_type() == "text/html"
+    assert html_part.get_payload()[1].get_content_type() == "application/octet-stream"
+    assert html_part.get_payload()[1].get_content() == b"CONTENT"
 
 
-def test_attach_text():
-    email = Email(from_address='sender@localhost', to='root@localhost')
-    email.attach('Hello')
+def test_attach_text() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost")
+    email.attach("Hello")
 
     mime_message = email.build()
     part: EmailMessage = mime_message.get_payload()[0]
-    assert part.get_content() == b'Hello'
-    assert part.get_content_type() == 'application/octet-stream'
+    assert part.get_content() == b"Hello"
+    assert part.get_content_type() == "application/octet-stream"
     assert part.get_filename() is None
 
 
-def test_attach_binary():
-    email = Email(from_address='sender@localhost', to='root@localhost')
-    email.attach(b'Hello')
+def test_attach_binary() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost")
+    email.attach(b"Hello")
 
     mime_message = email.build()
     part: EmailMessage = mime_message.get_payload()[0]
-    assert part.get_content() == b'Hello'
-    assert part.get_content_type() == 'application/octet-stream'
+    assert part.get_content() == b"Hello"
+    assert part.get_content_type() == "application/octet-stream"
     assert part.get_filename() is None
 
 
-def test_attach_text_with_filename_and_type():
-    email = Email(from_address='sender@localhost', to='root@localhost')
-    email.attach('Hello', 'file.html', 'text/html')
+def test_attach_text_with_filename_and_type() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost")
+    email.attach("Hello", "file.html", "text/html")
 
     mime_message = email.build()
     part: EmailMessage = mime_message.get_payload()[0]
-    assert part.get_content() == 'Hello'
-    assert part.get_content_type() == 'text/html'
-    assert part.get_filename() == 'file.html'
+    assert part.get_content() == "Hello"
+    assert part.get_content_type() == "text/html"
+    assert part.get_filename() == "file.html"
 
 
-def test_attach_binary_with_filename_and_type():
-    email = Email(from_address='sender@localhost', to='root@localhost')
-    email.attach(b'Hello', 'file.html', 'application/octet-stream')
+def test_attach_binary_with_filename_and_type() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost")
+    email.attach(b"Hello", "file.html", "application/octet-stream")
 
     mime_message = email.build()
     part: EmailMessage = mime_message.get_payload()[0]
-    assert part.get_content() == b'Hello'
-    assert part.get_content_type() == 'application/octet-stream'
-    assert part.get_filename() == 'file.html'
+    assert part.get_content() == b"Hello"
+    assert part.get_content_type() == "application/octet-stream"
+    assert part.get_filename() == "file.html"
 
 
 @pytest.mark.asyncio
-async def test_attach_from_path():
-    with tempfile.NamedTemporaryFile(suffix='.txt') as f:
-        f.write(b'Hello')
+async def test_attach_from_path() -> None:
+    with tempfile.NamedTemporaryFile(suffix=".txt") as f:
+        f.write(b"Hello")
         f.seek(0)
 
-        email = Email(from_address='sender@localhost', to='root@localhost')
+        email = Email(from_address="sender@localhost", to="root@localhost")
         await email.attach_from_path(f.name)
 
         mime_message = email.build()
         part: EmailMessage = mime_message.get_payload()[0]
-        assert part.get_content() == 'Hello'
-        assert part.get_content_type() == 'text/plain'
+        assert part.get_content() == "Hello"
+        assert part.get_content_type() == "text/plain"
         assert part.get_filename() == os.path.basename(f.name)
 
-        email = Email(from_address='sender@localhost', to='root@localhost')
-        await email.attach_from_path(f.name, 'file.html', 'text/html')
+        email = Email(from_address="sender@localhost", to="root@localhost")
+        await email.attach_from_path(f.name, "file.html", "text/html")
 
         mime_message = email.build()
-        part: EmailMessage = mime_message.get_payload()[0]
-        assert part.get_content() == 'Hello'
-        assert part.get_content_type() == 'text/html'
-        assert part.get_filename() == 'file.html'
+        part = mime_message.get_payload()[0]
+        assert part.get_content() == "Hello"
+        assert part.get_content_type() == "text/html"
+        assert part.get_filename() == "file.html"
 
 
-def test_attach_from_path_sync():
-    with tempfile.NamedTemporaryFile(suffix='.txt') as f:
-        f.write(b'Hello')
+def test_attach_from_path_sync() -> None:
+    with tempfile.NamedTemporaryFile(suffix=".txt") as f:
+        f.write(b"Hello")
         f.seek(0)
 
-        email = Email(from_address='sender@localhost', to='root@localhost')
+        email = Email(from_address="sender@localhost", to="root@localhost")
         email.attach_from_path_sync(f.name)
 
         mime_message = email.build()
         part: EmailMessage = mime_message.get_payload()[0]
-        assert part.get_content() == 'Hello'
-        assert part.get_content_type() == 'text/plain'
+        assert part.get_content() == "Hello"
+        assert part.get_content_type() == "text/plain"
         assert part.get_filename() == os.path.basename(f.name)
 
-        email = Email(from_address='sender@localhost', to='root@localhost')
-        email.attach_from_path_sync(f.name, 'file.html', 'text/html')
+        email = Email(from_address="sender@localhost", to="root@localhost")
+        email.attach_from_path_sync(f.name, "file.html", "text/html")
 
         mime_message = email.build()
-        part: EmailMessage = mime_message.get_payload()[0]
-        assert part.get_content() == 'Hello'
-        assert part.get_content_type() == 'text/html'
-        assert part.get_filename() == 'file.html'
+        part = mime_message.get_payload()[0]
+        assert part.get_content() == "Hello"
+        assert part.get_content_type() == "text/html"
+        assert part.get_filename() == "file.html"
 
 
-def test_embed_text():
-    email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
-    email.embed('Hello')
-
-    mime_message = email.build()
-    html_part: EmailMessage = mime_message.get_payload()[0]
-    inline_part: EmailMessage = html_part.get_payload()[1]
-
-    assert inline_part.get_content() == 'Hello\n'
-    assert inline_part.get_content_type() == 'text/plain'
-    assert inline_part.get_filename() is None
-
-
-def test_embed_binary():
-    email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
-    email.embed(b'Hello')
+def test_embed_text() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
+    email.embed("Hello")
 
     mime_message = email.build()
     html_part: EmailMessage = mime_message.get_payload()[0]
     inline_part: EmailMessage = html_part.get_payload()[1]
 
-    assert inline_part.get_content() == b'Hello'
-    assert inline_part.get_content_type() == 'application/octet-stream'
+    assert inline_part.get_content() == "Hello\n"
+    assert inline_part.get_content_type() == "text/plain"
     assert inline_part.get_filename() is None
 
 
-def test_embed_text_with_filename_and_type():
-    email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
-    email.embed('"Hello"', 'file.json', 'application/json')
+def test_embed_binary() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
+    email.embed(b"Hello")
+
+    mime_message = email.build()
+    html_part: EmailMessage = mime_message.get_payload()[0]
+    inline_part: EmailMessage = html_part.get_payload()[1]
+
+    assert inline_part.get_content() == b"Hello"
+    assert inline_part.get_content_type() == "application/octet-stream"
+    assert inline_part.get_filename() is None
+
+
+def test_embed_text_with_filename_and_type() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
+    email.embed('"Hello"', "file.json", "application/json")
 
     mime_message = email.build()
     html_part: EmailMessage = mime_message.get_payload()[0]
     inline_part: EmailMessage = html_part.get_payload()[1]
 
     assert inline_part.get_content() == '"Hello"\n'
-    assert inline_part.get_content_type() == 'text/plain'
-    assert inline_part.get_filename() == 'file.json'
+    assert inline_part.get_content_type() == "text/plain"
+    assert inline_part.get_filename() == "file.json"
 
 
-def test_embed_binary_with_filename_and_type():
-    email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
-    email.embed(b'"Hello"', 'file.json', 'application/json')
+def test_embed_binary_with_filename_and_type() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
+    email.embed(b'"Hello"', "file.json", "application/json")
 
     mime_message = email.build()
     html_part: EmailMessage = mime_message.get_payload()[0]
     inline_part: EmailMessage = html_part.get_payload()[1]
 
     assert inline_part.get_content() == b'"Hello"'
-    assert inline_part.get_content_type() == 'application/json'
-    assert inline_part.get_filename() == 'file.json'
+    assert inline_part.get_content_type() == "application/json"
+    assert inline_part.get_filename() == "file.json"
 
 
 @pytest.mark.asyncio
-async def test_embed_from_path():
-    with tempfile.NamedTemporaryFile(suffix='.txt') as f:
-        f.write(b'Hello')
+async def test_embed_from_path() -> None:
+    with tempfile.NamedTemporaryFile(suffix=".txt") as f:
+        f.write(b"Hello")
         f.seek(0)
 
-        email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
+        email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
         await email.embed_from_path(f.name)
 
         mime_message = email.build()
         html_part: EmailMessage = mime_message.get_payload()[0]
         inline_part: EmailMessage = html_part.get_payload()[1]
-        assert inline_part.get_content() == 'Hello\n'
-        assert inline_part.get_content_type() == 'text/plain'
+        assert inline_part.get_content() == "Hello\n"
+        assert inline_part.get_content_type() == "text/plain"
         assert inline_part.get_filename() == os.path.basename(f.name)
 
 
 @pytest.mark.asyncio
-async def test_embed_from_path_with_filename_and_type():
-    with tempfile.NamedTemporaryFile(suffix='.txt') as f:
-        f.write(b'Hello')
+async def test_embed_from_path_with_filename_and_type() -> None:
+    with tempfile.NamedTemporaryFile(suffix=".txt") as f:
+        f.write(b"Hello")
         f.seek(0)
 
-        email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
-        await email.embed_from_path(f.name, 'file.html', 'text/html')
+        email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
+        await email.embed_from_path(f.name, "file.html", "text/html")
 
         mime_message = email.build()
         html_part: EmailMessage = mime_message.get_payload()[0]
         inline_part: EmailMessage = html_part.get_payload()[1]
-        assert inline_part.get_content() == 'Hello\n'
-        assert inline_part.get_content_type() == 'text/html'
-        assert inline_part.get_filename() == 'file.html'
+        assert inline_part.get_content() == "Hello\n"
+        assert inline_part.get_content_type() == "text/html"
+        assert inline_part.get_filename() == "file.html"
 
 
-def test_embed_from_path_sync():
-    with tempfile.NamedTemporaryFile(suffix='.txt') as f:
-        f.write(b'Hello')
+def test_embed_from_path_sync() -> None:
+    with tempfile.NamedTemporaryFile(suffix=".txt") as f:
+        f.write(b"Hello")
         f.seek(0)
 
-        email = Email(from_address='sender@localhost', to='root@localhost', html='HTML message.')
+        email = Email(from_address="sender@localhost", to="root@localhost", html="HTML message.")
         email.embed_from_path_sync(f.name)
 
         mime_message = email.build()
         html_part: EmailMessage = mime_message.get_payload()[0]
         inline_part: EmailMessage = html_part.get_payload()[1]
-        assert inline_part.get_content() == 'Hello\n'
-        assert inline_part.get_content_type() == 'text/plain'
+        assert inline_part.get_content() == "Hello\n"
+        assert inline_part.get_content_type() == "text/plain"
         assert inline_part.get_filename() == os.path.basename(f.name)
 
 
-def test_attach_part():
-    email = Email(from_address='sender@localhost', to='root@localhost')
+def test_attach_part() -> None:
+    email = Email(from_address="sender@localhost", to="root@localhost")
 
-    custom_part = MIMEBase('text', 'plain')
-    custom_part.set_payload('CONTENT')
+    custom_part = MIMEBase("text", "plain")
+    custom_part.set_payload("CONTENT")
     email.attach_part(custom_part)
 
     mime_message = email.build()
     part: EmailMessage = mime_message.get_payload()[0]
-    assert part.get_payload() == 'CONTENT'
+    assert part.get_payload() == "CONTENT"
 
 
-def test_validates_content_presence():
+def test_validates_content_presence() -> None:
     with pytest.raises(InvalidBodyError):
-        email = Email(from_address='sender@localhost')
+        email = Email(from_address="sender@localhost")
         email.build()

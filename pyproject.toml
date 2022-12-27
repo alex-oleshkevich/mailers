@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mailers"
-version = "2.0.0"
+version = "3.0.0"
 description = "Email delivery for asyncio."
 authors = ["alex.oleshkevich <alex.oleshkevich@gmail.com>"]
 license = "MIT"
@@ -16,6 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.8",
@@ -25,24 +26,27 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-aiosmtplib = "^1.1.6"
-dkimpy = { version = "^1.0.5", optional = true }
+aiosmtplib = { version = "^2.0", optional = true }
+dkimpy = { version = "^1.0", optional = true }
 anyio = "^3.3.0"
-jinja2 = { version = "^3.0.1", optional = true }
+jinja2 = { version = "^3.0", optional = true }
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.4"
-pytest-asyncio = "^0.15.1"
+pytest = "*"
+pytest-asyncio = "*"
 aiosmtpd = "^1.4"
-pytest-sugar = "^0.9.4"
-pytest-cov = "^2.12"
-isort = "^5.9"
-black = "^21.7b0"
-mypy = "^0.910"
-flake8 = "^3.9.2"
-dkimpy = "^1.0.5"
-jinja2 = "^3.0.1"
+pytest-sugar = "*"
+pytest-cov = "*"
+isort = "*"
+black = "*"
+mypy = "*"
+flake8 = "*"
+dkimpy = "^1"
+jinja2 = "^3"
+aiosmtplib = "*"
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -50,20 +54,36 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.black]
-target-version = ["py38"]
-skip-string-normalization = true
+target-version = ["py310"]
+include = '\.pyi?$'
 line_length = 120
+exclude = '''
+(
+    asv_bench/env
+  | \.egg
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.nox
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | setup.py
+)
+'''
 
 [tool.isort]
 combine_as_imports = true
 include_trailing_comma = true
 known_standard_library = "dataclasses,typing_extensions"
-known_first_party = "mailers"
+known_first_party = "kupala"
 known_third_party = ["pkg_resources", "toml"]
 known_future_library = "__future__"
 line_length = 120
 multi_line_output = 3
-not_skip = "__init__.py"
 profile = "black"
 use_parentheses = true
 
@@ -75,10 +95,17 @@ omit = ["tests/*", ".venv/*", "*/__main__.py", "examples/*"]
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
-    "raise NotImplementedError"
+    "raise NotImplementedError",
+    "if typing.TYPE_CHECKING:",
 ]
+
 
 [tool.mypy]
 disallow_untyped_defs = true
 ignore_missing_imports = true
-exclude = "^tests/"
+files = ["mailers", "tests"]
+exclude = "/*venv/"
+pretty = true
+show_error_context = true
+show_column_numbers = true
+show_error_codes = true

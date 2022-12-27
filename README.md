@@ -1,7 +1,7 @@
 # Mailers for asyncio
 
 ![PyPI](https://img.shields.io/pypi/v/mailers)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/alex-oleshkevich/mailers/Lint)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/alex-oleshkevich/mailers/Lint%20and%20test)
 ![GitHub](https://img.shields.io/github/license/alex-oleshkevich/mailers)
 ![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/pypi/mailers)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/mailers)
@@ -32,41 +32,43 @@ pip install mailers
 ```
 
 ```python
-from mailers import create_mailer, Email
+from mailers import Mailer, Email
 
-message = Email(to='user@localhost', from_address='from@localhost', subject='Hello', text='World!')
-mailer = create_mailer('smtp://user:password@localhost:25?timeout=2')
+message = Email(
+    to="user@localhost", from_address="from@localhost", subject="Hello", text="World!"
+)
+mailer = Mailer("smtp://user:password@localhost:25?timeout=2")
 await mailer.send(message)
 ```
 
 You can also send to multiple recipients by passing an iterable int `to` argument:
 
 ```python
-message = Email(to=['user@localhost', 'user2@localhost', 'user@localhost'], ...)
+message = Email(to=["user@localhost", "user2@localhost", "user@localhost"])
 ```
 
 also you can change addresses any time you want:
 
 ```python
-message.to.add('anotheruser@example.com', 'me@example.com')
+message.to.add("anotheruser@example.com", "me@example.com")
 ```
 
 same rule applies to `to`, `from_address`, `cc`, `bcc`, `reply_to` fields.
 
 ## Compose messages
 
-The arguments and methods of `Email ` class are self-explanatory so here is an kick-start example:
+The arguments and methods of `Email` class are self-explanatory so here is an kick-start example:
 
 ```python
 from mailers import Email
 
 message = Email(
-    to='user@localhost',
-    from_address='from@example.tld',
-    cc='cc@example.com',
-    bcc=['bcc@example.com'],
-    text='Hello world!',
-    html='<b>Hello world!</b>',
+    to="user@localhost",
+    from_address="from@example.tld",
+    cc="cc@example.com",
+    bcc=["bcc@example.com"],
+    text="Hello world!",
+    html="<b>Hello world!</b>",
 )
 ```
 
@@ -108,10 +110,15 @@ import jinja2
 from mailers import Mailer, TemplatedEmail
 from mailers.plugins.jinja_renderer import JinjaRendererPlugin
 
-env = jinja2.Environment(loader=jinja2.FileSystemLoader(['templates']))
+env = jinja2.Environment(loader=jinja2.FileSystemLoader(["templates"]))
 mailer = Mailer(plugins=[JinjaRendererPlugin])
 
-email = TemplatedEmail(subject='Hello', text_template='mail.txt', html_template='mail.html', context={'user': 'root'})
+email = TemplatedEmail(
+    subject="Hello",
+    text_template="mail.txt",
+    html_template="mail.html",
+    context={"user": "root"},
+)
 mailer.send(email)
 ```
 
@@ -122,33 +129,35 @@ Use `attach`, `attach_from_path`, `attach_from_path_sync` methods to attach file
 ```python
 from mailers import Email
 
-message = Email(to='user@localhost', from_address='from@example.tld', text='Hello world!')
+message = Email(
+    to="user@localhost", from_address="from@example.tld", text="Hello world!"
+)
 
 # attachments can be added on demand
-await message.attach_from_path('file.txt')
+await message.attach_from_path("file.txt")
 
 # or use blocking sync version
-message.attach_from_path_sync('file.txt')
+message.attach_from_path_sync("file.txt")
 
 # attach from variable
-message.attach('CONTENTS', 'file.txt', 'text/plain')
+message.attach("CONTENTS", "file.txt", "text/plain")
 ```
 
 ## Embedding files
 
-In the same way as with attachments, you can inline files into your messages. This is commonly used to display embedded
+In the same way as with attachments, you can inline file into your messages. This is commonly used to display embedded
 images in the HTML body. Here are method you can use `embed`, `embed_from_path`, `embed_from_path_sync`.
 
 ```python
 from mailers import Email
 
 message = Email(
-    to='user@localhost',
-    from_address='from@example.tld',
+    to="user@localhost",
+    from_address="from@example.tld",
     html='Render me <img src="cid:img1">',
 )
 
-await message.embed_from_path(path='/path/to/image.png', name='img1')
+await message.embed_from_path(path="/path/to/image.png", name="img1")
 ```
 
 Note, that you have to add HTML part to embed files. Otherwise, they will be ignored.
@@ -160,9 +169,6 @@ You can sign messages (e.g. with DKIM) by passing `signer` argument to the `Mail
 ```python
 signer = MySigner()
 mailer = Mailer(..., signer=signer)
-
-# or
-mailer = create_mailer(..., signer=signer)
 ```
 
 ### DKIM signing
@@ -172,15 +178,15 @@ You may wish to add DKIM signature to your messages to prevent them from being p
 Note, you need to install [`dkimpy`](https://pypi.org/project/dkimpy/) package before using this feature.
 
 ```python
-from mailers import create_mailer
+from mailers import Mailer
 from mailers.signers.dkim import DKIMSigner
 
-signer = DKIMSigner(selector='default', private_key_path='/path/to/key.pem')
+signer = DKIMSigner(selector="default", private_key_path="/path/to/key.pem")
 
 # or you can put key content using private_key argument
-signer = DKIMSigner(selector='default', private_key='PRIVATE KEY GOES here...')
+signer = DKIMSigner(selector="default", private_key="PRIVATE KEY GOES here...")
 
-mailer = create_mailer('smtp://', signer=signer)
+mailer = Mailer("smtp://", signer=signer)
 ```
 
 Now all outgoing messages will be signed with DKIM method.
@@ -231,12 +237,16 @@ class MyEncrypter(Encrypter):
 
 ## High Availability
 
-You can pass multiples transports to the Mailer instance and it will iterate over them asking each to send a message. By
-default, the first transport is used but if it fails to send the message, the mailer will retry sending with the next
-transport in the chain.
+Use `MultiTransport` to provide a fallback transport. By default, the first transport is used but if it fails to send
+the message, it will retry sending using next configured transport.
 
 ```python
-mailer = Mailer([transport1, transport2, ..., transportN])
+from mailers import Mailer, MultiTransport, SMTPTransport
+
+primary_transport = SMTPTransport()
+fallback_transport = SMTPTransport()
+
+mailer = Mailer(MultiTransport([primary_transport, fallback_transport]))
 ```
 
 ## Plugins
@@ -249,25 +259,21 @@ Below you see an example plugin:
 ```python
 from email.message import Message
 
-from mailers import BasePlugin, create_mailer, Mailer, SentMessages
+from mailers import BasePlugin, Mailer
 
 
 class PrintPlugin(BasePlugin):
-
     async def on_before_send(self, message: Message) -> None:
-        print('sending message %s.' % message)
+        print("sending message %s." % message)
 
-    async def on_after_send(self, message: Message, sent_messages: SentMessages) -> None:
-        print('message has been sent %s.' % message)
+    async def on_after_send(self, message: Message) -> None:
+        print("message has been sent %s." % message)
 
-    async def on_send_error(self, message: Message, sent_messages: SentMessages) -> None:
-        print('error sending message %s.' % message)
+    async def on_send_error(self, message: Message, exc: Exception) -> None:
+        print("error sending message %s." % message)
 
 
 mailer = Mailer(plugins=[PrintPlugin()])
-
-# or if you use create_mailer shortcut
-mailer = create_mailer(plugins=[PrintPlugin()])
 ```
 
 ## Transports
@@ -360,38 +366,30 @@ This is a preconfigured subclass of streaming transport. Writes to `sys.stderr` 
 
 * `output` (typing.IO) - a writeable stream
 
+### Multi transport
+
+The purpose of this transport is to provide a developer an option to provide a fallback transport.
+You can configure several channels and `MultiTransport` will guarantee that at least one will deliver the message.
+
+**Class:** `mailers.transports.MultiTransport`
+**DSN:** `-`
+**Options:**
+
+* `transports` (list[Transport]) - subtransports
+
 ### Custom transports.
 
 Each transport must extend `mailers.transports.Transport` base class.
 
 ```python
-import typing as t
 from email.message import Message
-from mailers import Mailer, Transport, EmailURL, SentMessage
+from mailers import Mailer, Transport
 
 
 class PrintTransport(Transport):
-    @classmethod
-    def from_url(cls, url: t.Union[str, EmailURL]) -> t.Optional[Transport]:
-        # this method is optional,
-        # if your transport does not support instantiation from URL then return None here.
-        # returning None is the default behavior
-        return None
-
-    async def send(self, message: Message) -> SentMessage:
+    async def send(self, message: Message) -> None:
         print(str(message))
-        return SentMessage(True, message, self)
 
 
 mailer = Mailer(PrintTransport())
-```
-
-The library will call `Transport.from_url` when it needs to instantiate the transport instance from the URL. It is ok to
-return `None` as call result then the transport will be instantiated using construction without any arguments passed.
-
-Once you have defined a new transport, register a URL protocol for it:
-
-```python
-add_protocol_handler('print', PrintTransport)
-mailer = Mailer('print://')
 ```

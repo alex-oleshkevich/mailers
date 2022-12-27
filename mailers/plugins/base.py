@@ -1,33 +1,27 @@
-import typing as t
-from email.message import Message
+import typing
+from email.message import EmailMessage
 
 from mailers.message import Email
-from mailers.result import SentMessages
 
 
-class Plugin(t.Protocol):  # pragma: no cover
+class Plugin(typing.Protocol):  # pragma: no cover
     def process_email(self, email: Email) -> Email:
         """Mailer calls it before sending."""
 
-    async def on_before_send(self, message: Message) -> None:
+    async def on_before_send(self, message: EmailMessage) -> None:
         """Called right before sending the message."""
 
-    async def on_after_send(self, message: Message, sent_messages: SentMessages) -> None:
+    async def on_after_send(self, message: EmailMessage) -> None:
         """Called right after sending the message."""
-
-    async def on_send_error(self, message: Message, sent_messages: SentMessages) -> None:
-        """Called if no transport has delivered a message."""
 
 
 class BasePlugin:  # pragma: no cover
     def process_email(self, email: Email) -> Email:
         """Mailer calls it before sending."""
+        return email
 
-    async def on_before_send(self, message: Message) -> None:
+    async def on_before_send(self, message: EmailMessage) -> None:
         """Called right before sending the message."""
 
-    async def on_after_send(self, message: Message, sent_messages: SentMessages) -> None:
+    async def on_after_send(self, message: EmailMessage) -> None:
         """Called right after sending the message."""
-
-    async def on_send_error(self, message: Message, sent_messages: SentMessages) -> None:
-        """Called if no transport has delivered a message."""

@@ -1,59 +1,55 @@
-import typing as t
+import typing
+from urllib.parse import parse_qsl, urlparse
 
-from .config import EmailURL
-from .exceptions import NotRegisteredTransportError
-from .mailer import Mailer
-from .plugins import Plugin
-from .signers import Signer
-from .transports import ConsoleTransport, FileTransport, InMemoryTransport, NullTransport, Transport
-from .transports.smtp import SMTPTransport
-
-_protocol_handlers: t.Dict[str, t.Type[Transport]] = {
-    'smtp': SMTPTransport,
-    'file': FileTransport,
-    'null': NullTransport,
-    'memory': InMemoryTransport,
-    'console': ConsoleTransport,
-}
+from mailers.exceptions import NotRegisteredTransportError
+from mailers.transports import ConsoleTransport, FileTransport, InMemoryTransport, NullTransport, Transport
+from mailers.transports.smtp import SMTPTransport
 
 
-def create_transport_from_url(url: t.Union[str, EmailURL]) -> Transport:
+def create_transport_from_url(url: str) -> Transport:
     """Create a transport instance from URL configuration."""
+    components = urlparse(url)
+    protocol = components.scheme
+    options = dict(parse_qsl(components.query))
 
-    url = EmailURL(url)
-    if url.transport not in _protocol_handlers:
-        raise NotRegisteredTransportError(f'No transport found with scheme "{url.transport}".')
+    if protocol == "console":
+        assert "stream" in options
 
-    klass = _protocol_handlers[url.transport]
-    instance = klass.from_url(url)
-    if instance is None:
-        instance = klass()
-    return instance
+        stream = options.get("stream")
+        assert stream in ["stdout", "stderr"], '"stream" must be one of "stdout", "stderr"'
+        return ConsoleTransport(stream=typing.cast(typing.Literal["stdout", "stderr"], stream))
 
+    if protocol == "file":
+        return FileTransport(directory=components.path)
 
-def create_mailer(
-    url: t.Union[str, EmailURL],
-    plugins: t.Iterable[Plugin] = None,
-    signer: Signer = None,
-    from_address: str = None,
-) -> Mailer:
-    """Create mailer from URL configuration."""
-    transport = create_transport_from_url(url)
-    return Mailer(transport, plugins=plugins, signer=signer, from_address=from_address)
+    if protocol == "memory":
+        return InMemoryTransport()
 
+    if protocol == "null":
+        return NullTransport()
 
-def add_protocol_handler(protocol: str, transport: t.Type[Transport]) -> None:
-    """Register a new protocol handler.
+    if protocol == "smtp":
 
-    Example:
-        import mailers
+        def _cast_to_bool(value: str) -> bool:
+            return value.lower() in ["yes", "1", "on", "true"]
 
-        class MyTransport:
-            async def send(self, email_message: EmailMessage) -> None: ...
+        timeout: str | int | None = options.get("timeout", None)
+        if timeout is not None:
+            timeout = int(timeout)
 
-        mailers.add_transport('myproto', MyTransport)
+        use_tls = _cast_to_bool(options.get("use_tls", ""))
+        key_file: str | None = options.get("key_file", None)
+        cert_file: str | None = options.get("cert_file", None)
 
-        # then you can use it like this:
-        mailers.add_mailer('myproto://')
-    """
-    _protocol_handlers[protocol] = transport
+        return SMTPTransport(
+            components.hostname or "localhost",
+            components.port or 25,
+            components.username,
+            components.password,
+            use_tls=use_tls,
+            timeout=timeout or 10,
+            key_file=key_file,
+            cert_file=cert_file,
+        )
+
+    raise NotRegisteredTransportError(f"Don't know how to create transport for protocol '{protocol}'.")

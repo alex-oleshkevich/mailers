@@ -12,3 +12,7 @@ class InvalidSenderError(MailersError):
 
 class InvalidBodyError(MailersError):
     """Raised when the message is empty."""
+
+
+class DeliveryError(MailersError):
+    """Raised if transport fails to deliver the message."""

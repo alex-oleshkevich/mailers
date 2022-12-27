@@ -1,8 +1,8 @@
 import jinja2
 
-from ..message import Email
-from ..plugins import BasePlugin
-from ..templated_mail import TemplatedEmail
+from mailers.message import Email
+from mailers.plugins import BasePlugin
+from mailers.templated_mail import TemplatedEmail
 
 
 class JinjaRendererPlugin(BasePlugin):

@@ -1,8 +1,8 @@
 import abc
-from email.message import Message
+from email.message import EmailMessage
 
 
 class Encrypter(abc.ABC):  # pragma: no cover
     @abc.abstractmethod
-    def encrypt(self, message: Message) -> Message:
+    def encrypt(self, message: EmailMessage) -> EmailMessage:
         raise NotImplementedError()

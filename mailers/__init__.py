@@ -1,15 +1,20 @@
-from .config import EmailURL
-from .encrypters import Encrypter
-from .exceptions import MailersError
-from .factories import add_protocol_handler, create_mailer, create_transport_from_url
-from .mailer import Mailer
-from .message import Email
-from .plugins import BasePlugin, Plugin
-from .result import SentMessage, SentMessages
-from .signers import Signer
-from .templated_mail import TemplatedEmail
-from .transports import FileTransport, InMemoryTransport, NullTransport, StreamTransport, Transport
-from .transports.smtp import SMTPTransport
+from mailers.encrypters import Encrypter
+from mailers.exceptions import MailersError
+from mailers.factories import create_transport_from_url
+from mailers.mailer import Mailer
+from mailers.message import Email
+from mailers.plugins import BasePlugin, Plugin
+from mailers.signers import Signer
+from mailers.templated_mail import TemplatedEmail
+from mailers.transports import (
+    FileTransport,
+    InMemoryTransport,
+    MultiTransport,
+    NullTransport,
+    StreamTransport,
+    Transport,
+)
+from mailers.transports.smtp import SMTPTransport
 
 __all__ = [
     "Transport",
@@ -20,16 +25,12 @@ __all__ = [
     "StreamTransport",
     "MailersError",
     "Email",
-    "EmailURL",
     "Plugin",
     "BasePlugin",
     "Signer",
     "Encrypter",
     "Mailer",
-    "create_mailer",
     "create_transport_from_url",
-    "add_protocol_handler",
-    "SentMessages",
-    "SentMessage",
     "TemplatedEmail",
+    "MultiTransport",
 ]

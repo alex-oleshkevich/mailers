@@ -1,25 +1,18 @@
 from __future__ import annotations
 
-from email.message import Message
-from typing import Any, List
+import typing
+from email.message import EmailMessage
 
-from mailers.result import SentMessage
 from mailers.transports.base import Transport
 
 
 class InMemoryTransport(Transport):
+    def __init__(self, storage: typing.Optional[typing.List[EmailMessage]] = None) -> None:
+        self.storage = [] if storage is None else storage
+
     @property
-    def mailbox(self) -> List[Message]:
-        return self._storage
+    def mailbox(self) -> typing.List[EmailMessage]:
+        return self.storage
 
-    def __init__(self, storage: List[Message]):
-        self._storage = storage
-
-    async def send(self, message: Message) -> SentMessage:
-        self._storage.append(message)
-        return SentMessage(True, message, self)
-
-    @classmethod
-    def from_url(cls, *args: Any) -> InMemoryTransport:
-        mailbox: List[Message] = []
-        return cls(mailbox)
+    async def send(self, message: EmailMessage) -> None:
+        self.storage.append(message)

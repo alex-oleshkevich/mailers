@@ -8,7 +8,7 @@ import email.encoders
 import email.utils
 import mimetypes
 import os
-import typing as t
+import typing
 from email.headerregistry import Address
 from email.message import EmailMessage, Message
 from email.mime.base import MIMEBase
@@ -17,26 +17,26 @@ from email.policy import EmailPolicy
 import secrets
 from mailers.exceptions import InvalidBodyError
 
-if t.TYPE_CHECKING:  # pragma: no cover
+if typing.TYPE_CHECKING:  # pragma: no cover
     from _typeshed import OpenBinaryMode, OpenTextMode
 
-Recipients = t.Union[str, Address, t.Iterable[t.Union[str, Address]]]
+Recipients = typing.Union[str, Address, typing.Iterable[typing.Union[str, Address]]]
 
 
-def _string_to_address(value: t.Union[str, Address]) -> Address:
+def _string_to_address(value: typing.Union[str, Address]) -> Address:
     if isinstance(value, Address):
         return value
 
-    if '<' in value:
-        start_pos = value.index('<')
-        end_pos = value.index('>')
+    if "<" in value:
+        start_pos = value.index("<")
+        end_pos = value.index(">")
         display_name = value[0 : start_pos - 1]
         email = value[start_pos + 1 : end_pos]
         return Address(display_name=display_name, addr_spec=email)
     return Address(addr_spec=value)
 
 
-def _to_addresses(recipients: Recipients = None) -> t.List[Address]:
+def _to_addresses(recipients: typing.Optional[Recipients] = None) -> typing.List[Address]:
     if recipients is None:
         return []
     if isinstance(recipients, str):
@@ -46,9 +46,12 @@ def _to_addresses(recipients: Recipients = None) -> t.List[Address]:
     return list(map(_string_to_address, recipients))
 
 
+AddressType = typing.Union[typing.Union[str, Address], typing.Iterable[typing.Union[str, Address]]]
+
+
 class AddressList:
-    def __init__(self, addresses: t.Union[t.Union[str, Address], t.Iterable[t.Union[str, Address]]] = None) -> None:
-        self._addresses: t.List[Address] = []
+    def __init__(self, addresses: typing.Optional[AddressType] = None) -> None:
+        self._addresses: typing.List[Address] = []
         if addresses is not None:
             if isinstance(addresses, (str, Address)):
                 addresses = [addresses]
@@ -59,28 +62,28 @@ class AddressList:
         return len(self) == 0
 
     @property
-    def first(self) -> t.Optional[Address]:
+    def first(self) -> typing.Optional[Address]:
         try:
             return self._addresses[0]
         except IndexError:
             return None
 
-    def set(self, *address: t.Union[str, Address]) -> None:
+    def set(self, *address: typing.Union[str, Address]) -> None:
         self._addresses = _to_addresses(address)
 
-    def add(self, *address: t.Union[str, Address]) -> None:
+    def add(self, *address: typing.Union[str, Address]) -> None:
         self._addresses.extend(_to_addresses(address))
 
     def clear(self) -> None:
         self._addresses = []
 
     def __str__(self) -> str:
-        return ', '.join(map(str, self._addresses))
+        return ", ".join(map(str, self._addresses))
 
     def __repr__(self) -> str:  # pragma: no cover
         return f'<AddressList: addresses="{self}">'
 
-    def __iter__(self) -> t.Iterator[Address]:
+    def __iter__(self) -> typing.Iterator[Address]:
         return iter(self._addresses)
 
     def __len__(self) -> int:
@@ -92,38 +95,38 @@ class AddressList:
     def __eq__(self, other: object) -> bool:
         return str(self) == str(other)
 
-    def __get__(self, obj: object, type: type = None) -> AddressList:
+    def __get__(self, obj: object, type: typing.Optional[type] = None) -> AddressList:
         return self
 
-    def __set__(self, obj: object, value: t.Optional[Recipients]) -> None:
+    def __set__(self, obj: object, value: typing.Optional[Recipients]) -> None:
         self._addresses = _to_addresses(value)
 
 
 def _sanitize_input(
-    path: t.Union[str, os.PathLike],
-    name: str = None,
-    content_type: str = None,
-) -> t.Tuple[str, str]:
+    path: typing.Union[str, os.PathLike],
+    name: typing.Optional[str] = None,
+    content_type: typing.Optional[str] = None,
+) -> typing.Tuple[str, str]:
     name = name or os.path.basename(path)
-    content_type = content_type or mimetypes.guess_type(path)[0] or 'application/octet-stream'
+    content_type = content_type or mimetypes.guess_type(path)[0] or "application/octet-stream"
     return name, content_type
 
 
 @dataclass
 class Attachment:
-    name: t.Optional[str] = None
-    content_type: t.Optional[str] = None
-    body: t.Optional[t.Union[str, bytes]] = None
-    path: t.Optional[str] = None
-    inline: t.Optional[bool] = False
-    part: t.Optional[Message] = None
+    name: typing.Optional[str] = None
+    content_type: typing.Optional[str] = None
+    body: typing.Optional[typing.Union[str, bytes]] = None
+    path: typing.Optional[str] = None
+    inline: typing.Optional[bool] = False
+    part: typing.Optional[Message] = None
 
     @property
-    def mime_type_parts(self) -> t.Tuple[str, str]:
+    def mime_type_parts(self) -> typing.Tuple[str, str]:
         if self.content_type:
-            main_type, sub_type = self.content_type.split('/')
+            main_type, sub_type = self.content_type.split("/")
             return main_type, sub_type
-        return 'application', 'octet-stream'
+        return "application", "octet-stream"
 
 
 class Email:
@@ -135,24 +138,24 @@ class Email:
 
     def __init__(
         self,
-        to: Recipients = None,
-        subject: str = None,
-        text: str = None,
-        html: str = None,
-        from_address: Recipients = None,
-        cc: Recipients = None,
-        bcc: Recipients = None,
-        reply_to: Recipients = None,
-        headers: dict = None,
-        sender: str = None,
-        return_path: str = None,
-        text_charset: str = 'utf-8',
-        html_charset: str = 'utf-8',
-        boundary: str = None,
-        message_id: str = None,
+        to: typing.Optional[Recipients] = None,
+        subject: typing.Optional[str] = None,
+        text: typing.Optional[str] = None,
+        html: typing.Optional[str] = None,
+        from_address: typing.Optional[Recipients] = None,
+        cc: typing.Optional[Recipients] = None,
+        bcc: typing.Optional[Recipients] = None,
+        reply_to: typing.Optional[Recipients] = None,
+        headers: typing.Optional[dict] = None,
+        sender: typing.Optional[str] = None,
+        return_path: typing.Optional[str] = None,
+        text_charset: str = "utf-8",
+        html_charset: str = "utf-8",
+        boundary: typing.Optional[str] = None,
+        message_id: typing.Optional[str] = None,
     ) -> None:
-        self._sender: t.Optional[Address] = None
-        self._attachments: t.List[Attachment] = []
+        self._sender: typing.Optional[Address] = None
+        self._attachments: typing.List[Attachment] = []
 
         self.to = to
         self.cc = cc
@@ -175,24 +178,29 @@ class Email:
         self.date = email.utils.localtime()
 
     @property
-    def sender(self) -> t.Optional[Address]:
+    def sender(self) -> typing.Optional[Address]:
         return self._sender
 
     @sender.setter
-    def sender(self, value: t.Optional[t.Union[str, Address]]) -> None:
+    def sender(self, value: typing.Optional[typing.Union[str, Address]]) -> None:
         self._sender = _string_to_address(value) if value else None
 
-    def attach(self, body: t.Union[str, bytes], name: str = None, content_type: str = None) -> None:
+    def attach(
+        self,
+        body: typing.Union[str, bytes],
+        name: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
+    ) -> None:
         if isinstance(body, str):
             body = body.encode()
         self._attachments.append(Attachment(body=body, name=name, content_type=content_type))
 
     async def attach_from_path(
         self,
-        path: t.Union[str, os.PathLike],
-        name: str = None,
-        content_type: str = None,
-        mode: t.Union['OpenBinaryMode', 'OpenTextMode'] = 'r',
+        path: typing.Union[str, os.PathLike],
+        name: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
+        mode: typing.Union["OpenBinaryMode", "OpenTextMode"] = "r",
     ) -> None:
         name, content_type = _sanitize_input(path, name, content_type)
         async with await anyio.open_file(path, mode=mode) as f:
@@ -200,24 +208,29 @@ class Email:
 
     def attach_from_path_sync(
         self,
-        path: t.Union[str, os.PathLike],
-        name: str = None,
-        content_type: str = None,
-        mode: str = 'r',
+        path: typing.Union[str, os.PathLike],
+        name: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
+        mode: str = "r",
     ) -> None:
         name, content_type = _sanitize_input(path, name, content_type)
         with open(path, mode) as f:
             self.attach(f.read(), name, content_type)
 
-    def embed(self, body: t.Union[str, bytes], name: str = None, content_type: str = None) -> None:
+    def embed(
+        self,
+        body: typing.Union[str, bytes],
+        name: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
+    ) -> None:
         self._attachments.append(Attachment(body=body, name=name, content_type=content_type, inline=True))
 
     async def embed_from_path(
         self,
-        path: t.Union[str, os.PathLike],
-        name: str = None,
-        content_type: str = None,
-        mode: t.Union['OpenTextMode', 'OpenBinaryMode'] = 'r',
+        path: typing.Union[str, os.PathLike],
+        name: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
+        mode: typing.Union["OpenTextMode", "OpenBinaryMode"] = "r",
     ) -> None:
         name, content_type = _sanitize_input(path, name, content_type)
         async with await anyio.open_file(path, mode) as f:
@@ -225,10 +238,10 @@ class Email:
 
     def embed_from_path_sync(
         self,
-        path: t.Union[str, os.PathLike],
-        name: str = None,
-        content_type: str = None,
-        mode: str = 'r',
+        path: typing.Union[str, os.PathLike],
+        name: typing.Optional[str] = None,
+        content_type: typing.Optional[str] = None,
+        mode: str = "r",
     ) -> None:
         name, content_type = _sanitize_input(path, name, content_type)
         with open(path, mode) as f:
@@ -239,13 +252,13 @@ class Email:
 
     def validate(self) -> None:
         if all([self.text is None, self.html is None, not self._attachments]):
-            raise InvalidBodyError('Email message must have a text, or HTML part or attachments.')
+            raise InvalidBodyError("Email message must have a text, or HTML part or attachments.")
 
-    def build(self) -> Message:  # noqa: C901
+    def build(self) -> EmailMessage:  # noqa: C901
         self.validate()
 
         if not self.id:
-            domain = ''
+            domain = ""
             if self.sender:
                 domain = self.sender.domain
             if self.from_address:
@@ -253,20 +266,20 @@ class Email:
                 if first_address:
                     domain = first_address.domain
                 else:  # pragma: no cover
-                    raise ValueError('Could not read sender domain from From header.')
+                    raise ValueError("Could not read sender domain from From header.")
             self.id = email.utils.make_msgid(domain=domain)
 
         headers = {
-            'From': self.from_address,
-            'To': self.to,
-            'Cc': self.cc,
-            'Bcc': self.bcc,
-            'Reply-To': self.reply_to,
-            'Return-Path': self.return_path,
-            'Sender': self.sender,
-            'Message-ID': self.id,
-            'Date': self.date,
-            'Subject': self.subject,
+            "From": self.from_address,
+            "To": self.to,
+            "Cc": self.cc,
+            "Bcc": self.bcc,
+            "Reply-To": self.reply_to,
+            "Return-Path": self.return_path,
+            "Sender": self.sender,
+            "Message-ID": self.id,
+            "Date": self.date,
+            "Subject": self.subject,
             **self.headers,
         }
         inline_attachments = [a for a in self._attachments if a.inline and not a.part]
@@ -282,40 +295,40 @@ class Email:
 
         # this is text only message
         if self.text and not any([self.html, inline_attachments, attachments]):
-            mime_message.set_content(self.text, subtype='plain', charset=self.text_charset)
+            mime_message.set_content(self.text, subtype="plain", charset=self.text_charset)
             return mime_message
 
         # this is HTML only message
         if self.html and not any([self.text, inline_attachments, attachments]):
-            mime_message.set_content(self.html, subtype='html', charset=self.html_charset)
+            mime_message.set_content(self.html, subtype="html", charset=self.html_charset)
             return mime_message
 
         if self.text:
-            mime_message.set_content(self.text, subtype='plain', charset=self.text_charset)
+            mime_message.set_content(self.text, subtype="plain", charset=self.text_charset)
 
         if self.html:
-            domain = str(self.id).split('@').pop()
-            mime_message.add_alternative(self.html, subtype='html', charset=self.html_charset)
+            domain = str(self.id).split("@").pop()
+            mime_message.add_alternative(self.html, subtype="html", charset=self.html_charset)
             html_part = mime_message.get_payload(1 if self.text else 0)
             for inline_attachment in inline_attachments:
                 main_type, sub_type = inline_attachment.mime_type_parts
-                cid = inline_attachment.name or secrets.token_bytes(16).hex() + '@' + domain
+                cid = inline_attachment.name or secrets.token_bytes(16).hex() + "@" + domain
 
                 kwargs = {}
                 if isinstance(inline_attachment.body, str):
-                    kwargs['subtype'] = 'plain' if sub_type not in ['html', 'plain'] else sub_type
+                    kwargs["subtype"] = "plain" if sub_type not in ["html", "plain"] else sub_type
                 else:
-                    kwargs['maintype'] = main_type
-                    kwargs['subtype'] = sub_type
+                    kwargs["maintype"] = main_type
+                    kwargs["subtype"] = sub_type
 
                 html_part.add_related(
                     inline_attachment.body,
-                    disposition='inline',
+                    disposition="inline",
                     filename=inline_attachment.name,
                     cid=cid,
                     headers=[
-                        'Content-ID: <%s>' % cid,
-                        'X-Attachment-ID: %s' % cid,
+                        "Content-ID: <%s>" % cid,
+                        "X-Attachment-ID: %s" % cid,
                     ],
                     **kwargs,
                 )
@@ -327,7 +340,7 @@ class Email:
                 attachment.body,
                 maintype=main_type,
                 subtype=sub_type,
-                disposition='attachment',
+                disposition="attachment",
                 filename=attachment.name,
             )
 
