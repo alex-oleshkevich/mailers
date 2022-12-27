@@ -8,19 +8,24 @@ import email.encoders
 import email.utils
 import mimetypes
 import os
+import random
+import string
 import typing
 from email.headerregistry import Address
 from email.message import EmailMessage, Message
 from email.mime.base import MIMEBase
 from email.policy import EmailPolicy
 
-import secrets
 from mailers.exceptions import InvalidBodyError
 
 if typing.TYPE_CHECKING:  # pragma: no cover
     from _typeshed import OpenBinaryMode, OpenTextMode
 
 Recipients = typing.Union[str, Address, typing.Iterable[typing.Union[str, Address]]]
+
+
+def _randon_string(length: int) -> str:
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
 def _string_to_address(value: typing.Union[str, Address]) -> Address:
@@ -312,7 +317,7 @@ class Email:
             html_part = mime_message.get_payload(1 if self.text else 0)
             for inline_attachment in inline_attachments:
                 main_type, sub_type = inline_attachment.mime_type_parts
-                cid = inline_attachment.name or secrets.token_bytes(16).hex() + "@" + domain
+                cid = inline_attachment.name or _randon_string(16) + "@" + domain
 
                 kwargs = {}
                 if isinstance(inline_attachment.body, str):
