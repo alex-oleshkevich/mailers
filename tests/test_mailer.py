@@ -186,3 +186,13 @@ async def test_mailer_raises_delivery_error() -> None:
         with pytest.raises(DeliveryError, match="Failed to deliver email message"):
             mailer = Mailer(memory_transport, from_address="user@localhost")
             await mailer.send_message(to="roo@localhost", subject="Hello", text="World")
+
+
+@pytest.mark.asyncio
+async def test_mailer_calls_preprocessors(mailbox: typing.List[EmailMessage]) -> None:
+    message = Email(text="").build()
+    prerocessor = mock.MagicMock(return_value=message)
+    memory_transport = InMemoryTransport(mailbox)
+    mailer = Mailer(memory_transport, from_address="user@localhost", preprocessors=[prerocessor])
+    await mailer.send(message)
+    prerocessor.assert_called_once_with(message)

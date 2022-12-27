@@ -15,7 +15,7 @@
 * async and sync sending
 * pluggable transports
 * multiple built-in transports including: SMTP, file, null, in-memory, streaming, and console.
-* plugin system
+* message preprocessors
 * embeddables
 * attachments (with async and sync interfaces)
 * message signing via Signer interface (DKIM bundled)
@@ -28,39 +28,27 @@
 ## Usage
 
 ```bash
-pip install mailers
+pip install mailers[aiosmtplib]
 ```
 
-```python
-from mailers import Mailer, Email
+Then create mailer:
 
-message = Email(
+```python
+from mailers import Mailer
+
+mailer = Mailer("smtp://user:password@localhost:25?timeout=2")
+await mailer.send_message(
     to="user@localhost", from_address="from@localhost", subject="Hello", text="World!"
 )
-mailer = Mailer("smtp://user:password@localhost:25?timeout=2")
-await mailer.send(message)
 ```
-
-You can also send to multiple recipients by passing an iterable int `to` argument:
-
-```python
-message = Email(to=["user@localhost", "user2@localhost", "user@localhost"])
-```
-
-also you can change addresses any time you want:
-
-```python
-message.to.add("anotheruser@example.com", "me@example.com")
-```
-
-same rule applies to `to`, `from_address`, `cc`, `bcc`, `reply_to` fields.
 
 ## Compose messages
 
-The arguments and methods of `Email` class are self-explanatory so here is an kick-start example:
+If you need more control over the message, you can use `Email` object to construct email message and then send it
+using `mailer.send` method.
 
 ```python
-from mailers import Email
+from mailers import Email, Mailer
 
 message = Email(
     to="user@localhost",
@@ -70,9 +58,9 @@ message = Email(
     text="Hello world!",
     html="<b>Hello world!</b>",
 )
+mailer = Mailer("smtp://")
+await mailer.send(message)
 ```
-
-`cc`, `bcc`, `to`, `reply_to` can be either strings or lists of strings.
 
 ### Global From address
 
@@ -85,41 +73,29 @@ mailer = Mailer(from_address="sender@localhost")
 
 The mailer will set From header with the given value to all messages that do not container From or Sender headers.
 
-## Using templates
+## Using Jinja templates
 
-You can use any template engine with a special email class called `TemplatedEmail`. This class extends `Email` with
-following arguments:
+> Requires `jinja2` package installed
 
-* `html_template`  - a template for use in HTML part
-* `text_template`  - a template for use in text part
-* `context` - a template context
+You can use Jinja to render templates. This way, your `text` and `html` can be rendered from a template.
 
-Then, you need to use appropriate plugin that can render the email message.
-
-Out of the box, we provide a Jinja adapter.
-
-### Use Jinja2 engine
-
-You can use Jinja template engine to render your emails. Add `JinjaRendererPlugin` with a
-preconfigured `jinja2.Environment` instance. Then, use `mailers.TemplatedEmail` instead of `mailers.Email` to configure
-templated mail.
+Use `TemplatedMailer` instead of default `Mailer` and set a `jinja2.Environment` instance.
+Then, call `send_templated_message`.
 
 ```python
 import jinja2
 
-from mailers import Mailer, TemplatedEmail
-from mailers.plugins.jinja_renderer import JinjaRendererPlugin
+from mailers import TemplatedMailer
 
 env = jinja2.Environment(loader=jinja2.FileSystemLoader(["templates"]))
-mailer = Mailer(plugins=[JinjaRendererPlugin])
-
-email = TemplatedEmail(
+mailer = TemplatedMailer("smtp://", env)
+mailer.send_templated_message(
+    to="...",
     subject="Hello",
     text_template="mail.txt",
     html_template="mail.html",
-    context={"user": "root"},
+    template_context={"user": "root"},
 )
-mailer.send(email)
 ```
 
 ## Attachments
@@ -172,6 +148,8 @@ mailer = Mailer(..., signer=signer)
 ```
 
 ### DKIM signing
+
+> Requires `dkimpy` package installed
 
 You may wish to add DKIM signature to your messages to prevent them from being put into the spam folder.
 
@@ -249,36 +227,38 @@ fallback_transport = SMTPTransport()
 mailer = Mailer(MultiTransport([primary_transport, fallback_transport]))
 ```
 
-## Plugins
+## Preprocessors
 
-Plugins let you inspect and modify outgoing messages before or after they are sent. The plugin is a class that
-implements `mailers.plugins.Plugin` protocol. Plugins are added to mailers via `plugins` argument.
+Preprocessors are function that mailer calls before sending. Preprocessors are simple functions that modify message
+contents.
 
-Below you see an example plugin:
+Below you see an example preprocessor:
 
 ```python
-from email.message import Message
+from email.message import EmailMessage
 
-from mailers import BasePlugin, Mailer
-
-
-class PrintPlugin(BasePlugin):
-    async def on_before_send(self, message: Message) -> None:
-        print("sending message %s." % message)
-
-    async def on_after_send(self, message: Message) -> None:
-        print("message has been sent %s." % message)
-
-    async def on_send_error(self, message: Message, exc: Exception) -> None:
-        print("error sending message %s." % message)
+from mailers import Mailer
 
 
-mailer = Mailer(plugins=[PrintPlugin()])
+def attach_html_preprocessor(message: EmailMessage) -> EmailMessage:
+    message.add_alternative(b"This is HTML body", subtype="html", charset="utf-8")
+    return message
+
+
+mailer = Mailer(preprocessors=[attach_html_preprocessor])
 ```
+
+### CSS inliner
+
+> Requires `toronado` package installed
+
+Out of the box we provide `mailers.preprocessors.css_inliner` utility that converts CSS classes into inline styles.
 
 ## Transports
 
 ### SMTP transport
+
+> Requires `aiosmtplib` package installed
 
 Send messages via third-party SMTP servers.
 

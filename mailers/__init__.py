@@ -3,10 +3,9 @@ from mailers.exceptions import MailersError
 from mailers.factories import create_transport_from_url
 from mailers.mailer import Mailer, TemplatedMailer
 from mailers.message import Email
-from mailers.plugins import BasePlugin, Plugin
+from mailers.preprocessors import Preprocessor
 from mailers.pytest_plugin import Mailbox
 from mailers.signers import Signer
-from mailers.templated_mail import TemplatedEmail
 from mailers.transports import (
     FileTransport,
     InMemoryTransport,
@@ -26,14 +25,12 @@ __all__ = [
     "StreamTransport",
     "MailersError",
     "Email",
-    "Plugin",
-    "BasePlugin",
+    "Preprocessor",
     "Signer",
     "Encrypter",
     "Mailer",
     "TemplatedMailer",
     "create_transport_from_url",
-    "TemplatedEmail",
     "MultiTransport",
     "Mailbox",
 ]

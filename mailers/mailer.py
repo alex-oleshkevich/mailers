@@ -5,13 +5,13 @@ from mailers import create_transport_from_url
 from mailers.encrypters import Encrypter
 from mailers.exceptions import DeliveryError, InvalidSenderError
 from mailers.message import Email, Recipients
-from mailers.plugins import Plugin
+from mailers.preprocessors import Preprocessor
 from mailers.signers import Signer
 from mailers.transports import Transport
 
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: nocover
     import jinja2
-else:
+else:  # pragma: nocover
     try:
         import jinja2
     except ImportError:
@@ -25,9 +25,9 @@ class Mailer:
         self,
         transport: typing.Union[Transport, str],
         from_address: typing.Optional[str] = None,
-        plugins: typing.Optional[typing.Iterable[Plugin]] = None,
         signer: typing.Optional[Signer] = None,
         encrypter: typing.Optional[Encrypter] = None,
+        preprocessors: typing.Optional[typing.List[Preprocessor]] = None,
     ) -> None:
         if isinstance(transport, str):
             transport = create_transport_from_url(transport)
@@ -35,7 +35,7 @@ class Mailer:
         self.from_address = from_address
         self.signer = signer
         self.encrypter = encrypter
-        self.plugins = plugins or []
+        self.preprocessors = preprocessors or []
 
     async def send(self, message: typing.Union[Email, EmailMessage]) -> None:
         from_ = message.from_address if isinstance(message, Email) else message.get("From")
@@ -50,14 +50,10 @@ class Mailer:
             else:
                 message["From"] = self.from_address
 
-        for plugin in self.plugins:
-            if isinstance(message, Email):
-                message = plugin.process_email(message)
-
         mime_message = message.build() if isinstance(message, Email) else message
 
-        for plugin in self.plugins:
-            await plugin.on_before_send(mime_message)
+        for preprocessor in self.preprocessors:
+            mime_message = preprocessor(mime_message)
 
         if self.encrypter:
             mime_message = self.encrypter.encrypt(mime_message)
@@ -67,8 +63,6 @@ class Mailer:
 
         try:
             await self.transport.send(mime_message)
-            for plugin in self.plugins:
-                await plugin.on_after_send(mime_message)
         except Exception as ex:
             raise DeliveryError("Failed to deliver email message.") from ex
 
@@ -111,12 +105,9 @@ class TemplatedMailer(Mailer):
         self,
         transport: typing.Union[Transport, str],
         jinja_env: "jinja2.Environment",
-        from_address: typing.Optional[str] = None,
-        plugins: typing.Optional[typing.Iterable[Plugin]] = None,
-        signer: typing.Optional[Signer] = None,
-        encrypter: typing.Optional[Encrypter] = None,
+        **kwargs: typing.Any,
     ) -> None:
-        super().__init__(transport, from_address, plugins, signer, encrypter)
+        super().__init__(transport, **kwargs)
         self.jinja_env = jinja_env
 
     async def send_templated_message(
