@@ -6,7 +6,7 @@ from mailers.transports.base import Transport
 
 
 class MultiDeliveryError(MailersError):
-    def __init__(self, message: str, exceptions: list[Exception]) -> None:
+    def __init__(self, message: str, exceptions: typing.List[Exception]) -> None:
         super().__init__(message)
         self.exceptions = exceptions
 
