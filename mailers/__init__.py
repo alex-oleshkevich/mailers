@@ -4,7 +4,6 @@ from mailers.factories import create_transport_from_url
 from mailers.mailer import Mailer, TemplatedMailer
 from mailers.message import Email
 from mailers.preprocessors import Preprocessor
-from mailers.pytest_plugin import Mailbox
 from mailers.signers import Signer
 from mailers.transports import (
     FileTransport,
@@ -32,5 +31,4 @@ __all__ = [
     "TemplatedMailer",
     "create_transport_from_url",
     "MultiTransport",
-    "Mailbox",
 ]

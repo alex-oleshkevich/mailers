@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mailers"
-version = "3.0.0"
+version = "3.0.1"
 description = "Email delivery for asyncio."
 authors = ["alex.oleshkevich <alex.oleshkevich@gmail.com>"]
 license = "MIT"
