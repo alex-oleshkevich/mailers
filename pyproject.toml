@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mailers"
-version = "3.0.1"
+version = "3.0.2"
 description = "Email delivery for asyncio."
 authors = ["alex.oleshkevich <alex.oleshkevich@gmail.com>"]
 license = "MIT"
@@ -16,6 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.9",
@@ -26,13 +27,12 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-aiosmtplib = { version = "^2.0", optional = true }
+aiosmtplib = { version = "^3.0", optional = true }
 dkimpy = { version = "^1.0", optional = true }
-anyio = "^3.3.0"
+anyio = "^4"
 jinja2 = { version = "^3.0", optional = true }
 
-[tool.poetry.dev-dependencies]
-pytest = "*"
+[tool.poetry.group.dev.dependencies]
 pytest-asyncio = "*"
 aiosmtpd = "^1.4"
 pytest-sugar = "*"
@@ -41,9 +41,7 @@ mypy = "*"
 dkimpy = "^1"
 jinja2 = "^3"
 aiosmtplib = "*"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.2.0"
+pytest = "^8.0"
 toronado = "^0.1.0"
 
 [tool.poetry.extras]
@@ -57,41 +55,6 @@ mailers = "mailers.pytest_plugin"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
-
-
-[tool.black]
-target-version = ["py310"]
-include = '\.pyi?$'
-line_length = 120
-exclude = '''
-(
-    asv_bench/env
-  | \.egg
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.nox
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | setup.py
-)
-'''
-
-[tool.isort]
-combine_as_imports = true
-include_trailing_comma = true
-known_standard_library = "dataclasses,typing_extensions"
-known_first_party = "mailers"
-known_third_party = ["pkg_resources", "toml"]
-known_future_library = "__future__"
-line_length = 120
-multi_line_output = 3
-profile = "black"
-use_parentheses = true
 
 [tool.coverage.run]
 branch = true
@@ -115,3 +78,22 @@ pretty = true
 show_error_context = true
 show_column_numbers = true
 show_error_codes = true
+
+[tool.ruff]
+exclude = [
+    ".egg",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".tox",
+    ".venv",
+]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = false

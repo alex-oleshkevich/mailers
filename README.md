@@ -20,7 +20,7 @@
 * attachments (with async and sync interfaces)
 * message signing via Signer interface (DKIM bundled)
 * message encryption via Encrypter interface
-* trio support via anyio (the library itself, some mail backend may not be compatible)
+* trio support via anyio (the library itself, some backends may not be compatible)
 * fallback transports
 * global From address
 * templated emails

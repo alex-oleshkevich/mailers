@@ -3,7 +3,6 @@ from urllib.parse import parse_qsl, urlparse
 
 from mailers.exceptions import NotRegisteredTransportError
 from mailers.transports import ConsoleTransport, FileTransport, InMemoryTransport, NullTransport, Transport
-from mailers.transports.smtp import SMTPTransport
 
 
 def create_transport_from_url(url: str) -> Transport:
@@ -40,6 +39,8 @@ def create_transport_from_url(url: str) -> Transport:
         use_tls = _cast_to_bool(options.get("use_tls", ""))
         key_file: typing.Optional[str] = options.get("key_file", None)
         cert_file: typing.Optional[str] = options.get("cert_file", None)
+
+        from mailers.transports.smtp import SMTPTransport
 
         return SMTPTransport(
             components.hostname or "localhost",
