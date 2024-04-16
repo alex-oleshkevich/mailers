@@ -29,7 +29,7 @@ classifiers = [
 python = "^3.8"
 aiosmtplib = { version = "^3.0", optional = true }
 dkimpy = { version = "^1.0", optional = true }
-anyio = "^4"
+anyio = ">=3.7.1,<5"
 jinja2 = { version = "^3.0", optional = true }
 
 [tool.poetry.group.dev.dependencies]
