@@ -6,6 +6,7 @@ You need to setup several environment variables before you can use this script:
 * MAILERS_RECIPIENT - a recipient's email ("To" header)
 * MAILERS_FROM_ADDRESS - a sender address ("From" header)
 """
+
 import asyncio
 import os
 import sys

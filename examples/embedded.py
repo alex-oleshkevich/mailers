@@ -7,6 +7,7 @@ You need to setup several environment variables before you can use this script:
 * MAILERS_FROM_ADDRESS - a sender address ("From" header)
 * MAILER_URL - mailer configuration URL
 """
+
 import asyncio
 import base64
 import os

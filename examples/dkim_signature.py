@@ -11,6 +11,7 @@ You need to setup several environment variables before you can use this script:
 Also make sure that you have set up DKIM DNS TXT record.
 Also, you may need to setup SPF DNS TEXT record as well if sender's IP is not the same as DKIM domain.
 """
+
 import asyncio
 import os
 
