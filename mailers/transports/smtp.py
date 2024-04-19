@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import aiosmtplib
 import typing
 from email.message import Message
 
@@ -29,6 +28,8 @@ class SMTPTransport(Transport):
         self._cert_file = cert_file
 
     async def send(self, message: Message) -> None:
+        import aiosmtplib
+
         await aiosmtplib.send(
             message,
             hostname=self._host,
