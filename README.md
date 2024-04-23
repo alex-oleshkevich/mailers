@@ -28,7 +28,7 @@
 ## Usage
 
 ```bash
-pip install mailers[aiosmtplib]
+pip install mailers[smtp]
 ```
 
 Then create mailer:
