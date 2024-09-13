@@ -34,12 +34,8 @@ class SMTPTransport(Transport):
     async def send(self, message: Message) -> None:
         import aiosmtplib
 
-        sender = message.get("Sender")
-        if sender:
-            del message["Sender"]
-        return_path = message.get("Return-Path")
-        if return_path:
-            del message["Return-Path"]
+        sender = message.pop("Sender")
+        return_path = message.pop("Return-Path")
         if sender is None and return_path:
             sender = return_path
 
