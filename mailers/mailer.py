@@ -91,7 +91,7 @@ class Mailer:
             headers=dict(headers) if headers else {},
             sender=sender,
             text=str(text) if text is not None else None,
-            html=str(html) if text is not None else None,
+            html=str(html) if html is not None else None,
             return_path=return_path,
             text_charset="utf-8",
             html_charset="utf-8",
