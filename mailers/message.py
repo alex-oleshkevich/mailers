@@ -14,7 +14,7 @@ import typing
 from email.headerregistry import Address
 from email.message import EmailMessage, Message
 from email.mime.base import MIMEBase
-from email.policy import EmailPolicy
+from email.policy import SMTP
 
 from mailers.exceptions import InvalidBodyError
 
@@ -291,7 +291,7 @@ class Email:
         attachments = [a for a in self._attachments if not a.inline and not a.part]
         extra_parts = [a for a in self._attachments if a.part]
 
-        mime_message = EmailMessage(policy=EmailPolicy())
+        mime_message = EmailMessage(policy=SMTP)
 
         for header_name, header_value in headers.items():
             if not header_value:  # ignore empty headers
