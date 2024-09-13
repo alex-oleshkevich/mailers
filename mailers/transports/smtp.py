@@ -29,7 +29,7 @@ class SMTPTransport(Transport):
         self._key_file = key_file
         self._cert_file = cert_file
         self._cert_bundle = cert_bundle
-        self._validate_certs = validate_certs or True
+        self._validate_certs = validate_certs if validate_certs is not None else True
 
     async def send(self, message: Message) -> None:
         import aiosmtplib
