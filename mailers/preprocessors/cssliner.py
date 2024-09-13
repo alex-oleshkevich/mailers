@@ -18,7 +18,7 @@ def css_inliner(message: EmailMessage) -> EmailMessage:
         if not message["content-disposition"]:
             _process(message)
 
-    if message.get_content_type() in ["multipart/alternative", "multipart/mixed"]:
+    if message.get_content_type() in ["multipart/alternative", "multipart/mixed", "multipart/related"]:
         for part in message.get_payload():
             css_inliner(part)
 
