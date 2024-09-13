@@ -17,6 +17,8 @@ class SMTPTransport(Transport):
         timeout: int = 10,
         key_file: typing.Optional[str] = None,
         cert_file: typing.Optional[str] = None,
+        cert_bundle: typing.Optional[str] = None,
+        validate_certs: typing.Optional[bool] = None,
     ):
         self._host = host
         self._user = user
@@ -26,6 +28,8 @@ class SMTPTransport(Transport):
         self._timeout = timeout
         self._key_file = key_file
         self._cert_file = cert_file
+        self._cert_bundle = cert_bundle
+        self._validate_certs = validate_certs or True
 
     async def send(self, message: Message) -> None:
         import aiosmtplib
@@ -40,4 +44,6 @@ class SMTPTransport(Transport):
             timeout=self._timeout,
             client_key=self._key_file,
             client_cert=self._cert_file,
+            cert_bundle=self._cert_bundle,
+            validate_certs=self._validate_certs,
         )

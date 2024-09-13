@@ -39,6 +39,8 @@ def create_transport_from_url(url: str) -> Transport:
         use_tls = _cast_to_bool(options.get("use_tls", ""))
         key_file: typing.Optional[str] = options.get("key_file", None)
         cert_file: typing.Optional[str] = options.get("cert_file", None)
+        cert_bundle: typing.Optional[str] = options.get("cert_bundle", None)
+        validate_certs = _cast_to_bool(options.get("validate_certs", ""))
 
         from mailers.transports.smtp import SMTPTransport
 
@@ -51,6 +53,8 @@ def create_transport_from_url(url: str) -> Transport:
             timeout=timeout or 10,
             key_file=key_file,
             cert_file=cert_file,
+            cert_bundle=cert_bundle,
+            validate_certs=validate_certs,
         )
 
     raise NotRegisteredTransportError(f"Don't know how to create transport for protocol '{protocol}'.")
