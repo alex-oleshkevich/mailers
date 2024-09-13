@@ -4,7 +4,7 @@ from email.message import EmailMessage, MIMEPart
 
 def _process(part: MIMEPart) -> MIMEPart:
     content = part.get_content()
-    part.set_payload(toronado.from_string(content))
+    part.set_content(toronado.from_string(content), maintype="text", subtype="html")
     return part
 
 
