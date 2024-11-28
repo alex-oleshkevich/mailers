@@ -31,6 +31,7 @@ aiosmtplib = { version = "^3.0", optional = true }
 dkimpy = { version = "^1.0", optional = true }
 anyio = ">=3.7.1,<5"
 jinja2 = { version = "^3.0", optional = true }
+css_inline = { version = ">=0.14", optional = true }
 
 [tool.poetry.group.dev.dependencies]
 pytest-asyncio = "*"
@@ -42,12 +43,15 @@ dkimpy = "^1"
 jinja2 = "^3"
 aiosmtplib = "*"
 pytest = "^8.0"
-toronado = "^0.1.0"
+
+# required in case a parent directory overrides these options
+[tool.pytest.ini_options]
 
 [tool.poetry.extras]
 jinja2 = ["jinja2"]
 smtp = ["aiosmtplib"]
 dkim = ["dkimpy"]
+css_inline = ["css_inline"]
 
 [tool.poetry.plugins.pytest11]
 mailers = "mailers.pytest_plugin"
@@ -80,15 +84,7 @@ show_column_numbers = true
 show_error_codes = true
 
 [tool.ruff]
-exclude = [
-    ".egg",
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".tox",
-    ".venv",
-]
+exclude = [".egg", ".git", ".hg", ".mypy_cache", ".nox", ".tox", ".venv"]
 line-length = 120
 indent-width = 4
 

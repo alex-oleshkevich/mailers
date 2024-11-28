@@ -1,10 +1,18 @@
-import toronado
+import css_inline
 from email.message import EmailMessage, MIMEPart
 
 
 def _process(part: MIMEPart) -> MIMEPart:
+    # https://github.com/Stranger6667/css-inline/tree/master/bindings/python
+    inliner = css_inline.CSSInliner()
+
     content = part.get_content()
-    part.set_content(toronado.from_string(content), maintype="text", subtype="html")
+    part.set_content(
+        # set_content requires a byte literal, not a string
+        inliner.inline(content).encode("utf-8"),
+        maintype="text",
+        subtype="html",
+    )
     return part
 
 
@@ -18,7 +26,11 @@ def css_inliner(message: EmailMessage) -> EmailMessage:
         if not message["content-disposition"]:
             _process(message)
 
-    if message.get_content_type() in ["multipart/alternative", "multipart/mixed", "multipart/related"]:
+    if message.get_content_type() in [
+        "multipart/alternative",
+        "multipart/mixed",
+        "multipart/related",
+    ]:
         for part in message.get_payload():
             css_inliner(part)
 
