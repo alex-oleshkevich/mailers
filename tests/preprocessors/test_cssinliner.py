@@ -21,9 +21,7 @@ def test_css_inliner_with_text_only_message() -> None:
     message = EmailMessage()
     message.set_content(html, subtype="plain", charset="utf-8")
     message = css_inliner(message)
-    assert message.get_content() == (
-        '<style>.text {color: red; }</style><p class="text">hello</p>\n'
-    )
+    assert message.get_content() == ('<style>.text {color: red; }</style><p class="text">hello</p>\n')
 
 
 def test_css_inliner_with_multipart_message() -> None:
@@ -32,10 +30,7 @@ def test_css_inliner_with_multipart_message() -> None:
     message.set_content(html, subtype="plain", charset="utf-8")
     message.add_alternative(html, subtype="html", charset="utf-8")
     message = css_inliner(message)
-    assert (
-        message.get_payload()[0].get_content()
-        == '<style>.text {color: red; }</style><p class="text">hello</p>\n'
-    )
+    assert message.get_payload()[0].get_content() == '<style>.text {color: red; }</style><p class="text">hello</p>\n'
     assert message.get_payload()[1].get_content() == (
         '<html><head></head><body><p class="text" style="color: red;">hello</p>\n</body></html>'
     )
