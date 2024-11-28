@@ -1,5 +1,6 @@
-import css_inline
 from email.message import EmailMessage, MIMEPart
+
+import css_inline
 
 
 def _process(part: MIMEPart) -> MIMEPart:
