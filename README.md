@@ -254,6 +254,12 @@ mailer = Mailer(preprocessors=[attach_html_preprocessor])
 
 Out of the box we provide `mailers.preprocessors.css_inliner` utility that converts CSS classes into inline styles.
 
+### CSS inliner
+
+> Optionally requires `beautifulsoup4` a regular express is used otherwise
+
+Out of the box we provide `mailers.preprocessors.remove_html_comments` utility that removes html comments
+
 ## Transports
 
 ### SMTP transport
