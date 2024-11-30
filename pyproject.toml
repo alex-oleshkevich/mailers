@@ -43,9 +43,11 @@ dkimpy = "^1"
 jinja2 = "^3"
 aiosmtplib = "*"
 pytest = "^8.0"
+css_inline =">=0.14"
 
 # required in case a parent directory overrides these options
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "session"
 
 [tool.poetry.extras]
 jinja2 = ["jinja2"]
