@@ -119,6 +119,55 @@ message.attach_from_path_sync("file.txt")
 message.attach("CONTENTS", "file.txt", "text/plain")
 ```
 
+## Markdown support
+
+Markdown is not supported directly, but it's easy to implement within your application. Here's an example:
+
+```python
+import markdown2
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+import app
+
+def render_template(template_path: str, context: dict):
+    "Helper to make rendering a template with jinja2 easier"
+
+    env = Environment(
+        loader=FileSystemLoader("app/templates"),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+
+    template = env.get_template(template_path)
+    return template.render(context)
+
+def render_email(
+    template_path: str, context: dict, layout_path: str = "mail/layout.html"
+) -> tuple[str, str]:
+    """
+    Renders an email template into HTML and plaintext versions
+    Returns tuple of (html_content, plaintext_content)
+    """
+
+    # First render the markdown template with variables
+    markdown_content = render_template(template_path, context)
+
+    # Use the raw markdown as plaintext version
+    plaintext_content = markdown_content
+
+    # Convert markdown to HTML for rich email clients
+    html_content = markdown2.markdown(markdown_content)
+
+    # Now render the entire html layout, with the markdown => html content inserted
+    html_content = render_template(layout_path, context | {"content": html_content})
+
+    return html_content, plaintext_content
+
+html, text = render_email("mail/welcome.md", {"user": "root"})
+# from here you can pass this to your mailer
+```
+
+[You can full a full example](https://github.com/iloveitaly/python-starter-template/blob/master/app/emailer.py) in a working application here.
+
 ## Embedding files
 
 In the same way as with attachments, you can inline file into your messages. This is commonly used to display embedded
@@ -254,9 +303,9 @@ mailer = Mailer(preprocessors=[attach_html_preprocessor])
 
 Out of the box we provide `mailers.preprocessors.css_inliner` utility that converts CSS classes into inline styles.
 
-### CSS inliner
+### Remove HTML comments
 
-> Optionally requires `beautifulsoup4` a regular express is used otherwise
+> Optionally requires `beautifulsoup4`. A regular express is used if bs is not available.
 
 Out of the box we provide `mailers.preprocessors.remove_html_comments` utility that removes html comments
 
