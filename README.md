@@ -166,7 +166,7 @@ html, text = render_email("mail/welcome.md", {"user": "root"})
 # from here you can pass this to your mailer
 ```
 
-[You can full a full example](https://github.com/iloveitaly/python-starter-template/blob/master/app/emailer.py) in a working application here.
+[You can full a full example](https://github.com/iloveitaly/python-starter-template/blob/master/app/configuration/emailer.py) in a working application here.
 
 ## Embedding files
 
