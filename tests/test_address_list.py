@@ -79,7 +79,7 @@ def test_descriptor() -> None:
 
     instance = T()
     instance.f = "root@localhost"
-    assert type(instance.f) == AddressList
+    assert type(instance.f) is AddressList
     assert len(instance.f) == 1
 
     instance.f = Address(addr_spec="root@localhost")

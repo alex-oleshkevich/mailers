@@ -1,14 +1,12 @@
-[tool.poetry]
+[project]
 name = "mailers"
-version = "3.2.0"
+version = "3.3.0"
 description = "Email delivery for asyncio."
-authors = ["alex.oleshkevich <alex.oleshkevich@gmail.com>"]
-license = "MIT"
-readme = 'README.md'
-homepage = 'https://github.com/alex-oleshkevich/mailers'
-repository = 'https://github.com/alex-oleshkevich/mailers.git'
-documentation = "https://github.com/alex-oleshkevich/mailers"
-keywords = ['asyncio', 'email', 'mailer', 'mail']
+authors = [{ name = "Alex Oleshkevich", email = "alex.oleshkevich@gmail.com" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["asyncio", "email", "mailer", "mail"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
@@ -16,51 +14,60 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+dependencies = [
+    "anyio>=3.7.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-aiosmtplib = { version = "^3.0", optional = true }
-dkimpy = { version = "^1.0", optional = true }
-anyio = ">=3.7.1,<5"
-jinja2 = { version = "^3.0", optional = true }
-css_inline = { version = ">=0.14", optional = true }
+[project.optional-dependencies]
+jinja2 = ["jinja2>=3.0"]
+smtp = ["aiosmtplib>=3.0"]
+dkim = ["dkimpy>=1.0"]
+css_inline = ["css-inline>=0.14"]
 
-[tool.poetry.group.dev.dependencies]
-pytest-asyncio = "*"
-aiosmtpd = "^1.4"
-pytest-sugar = "*"
-pytest-cov = "*"
-mypy = "*"
-dkimpy = "^1"
-jinja2 = "^3"
-aiosmtplib = "*"
-pytest = "^8.0"
-css_inline =">=0.14"
+[project.urls]
+Homepage = "https://github.com/alex-oleshkevich/mailers"
+Repository = "https://github.com/alex-oleshkevich/mailers"
+Documentation = "https://github.com/alex-oleshkevich/mailers"
+
+[project.entry-points.pytest11]
+mailers = "mailers.pytest_plugin"
+
+[build-system]
+requires = ["uv_build>=0.11.30,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "mailers"
+module-root = ""
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "aiosmtpd>=1.4.6",
+    "pytest-sugar>=1.1.1",
+    "pytest-cov>=7.1.0",
+    "mypy>=1.19.1",
+    "prek>=0.4.10",
+    "dkimpy>=1.1.8",
+    "jinja2>=3.1.6",
+    "aiosmtplib>=4.0.2",
+    "css-inline>=0.20.2",
+]
 
 # required in case a parent directory overrides these options
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "session"
-
-[tool.poetry.extras]
-jinja2 = ["jinja2"]
-smtp = ["aiosmtplib"]
-dkim = ["dkimpy"]
-css_inline = ["css_inline"]
-
-[tool.poetry.plugins.pytest11]
-mailers = "mailers.pytest_plugin"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.coverage.run]
 branch = true
@@ -73,7 +80,6 @@ exclude_lines = [
     "raise NotImplementedError",
     "if typing.TYPE_CHECKING:",
 ]
-
 
 [tool.mypy]
 disallow_untyped_defs = true

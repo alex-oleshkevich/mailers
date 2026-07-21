@@ -1,4 +1,3 @@
-import asyncio
 import pytest
 import typing
 from aiosmtpd import smtp
@@ -8,12 +7,6 @@ from email.message import EmailMessage, Message
 
 from mailers import InMemoryTransport, Mailer
 from mailers.message import Email
-
-
-async def amain(handler: typing.Any) -> Controller:
-    cont = Controller(handler, hostname="localhost", port=10025)
-    cont.start()
-    return cont
 
 
 class RecordingHandler(MessageHandler):
@@ -48,10 +41,9 @@ def smtpd_handler(mailbox: typing.List[EmailMessage]) -> RecordingHandler:
 
 
 @pytest.fixture(scope="function")
-def smtpd_server(
-    smtpd_handler: RecordingHandler, event_loop: asyncio.AbstractEventLoop
-) -> typing.Generator[Controller, None, None]:
-    server = event_loop.run_until_complete(amain(smtpd_handler))
+def smtpd_server(smtpd_handler: RecordingHandler) -> typing.Generator[Controller, None, None]:
+    server = Controller(smtpd_handler, hostname="localhost", port=10025)
+    server.start()
     yield server
     server.stop()
 
