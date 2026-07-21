@@ -1,3 +1,4 @@
+import typing
 from email.message import EmailMessage, MIMEPart
 
 import css_inline
@@ -32,7 +33,7 @@ def css_inliner(message: EmailMessage) -> EmailMessage:
         "multipart/mixed",
         "multipart/related",
     ]:
-        for part in message.get_payload():
-            css_inliner(part)
+        for part in message.iter_parts():
+            css_inliner(typing.cast(EmailMessage, part))
 
     return message

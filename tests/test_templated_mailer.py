@@ -6,6 +6,7 @@ from email.message import EmailMessage
 
 from mailers import InMemoryTransport
 from mailers.mailer import TemplatedMailer
+from tests.helpers import get_part
 
 THIS_DIR = pathlib.Path(__file__).parent
 
@@ -23,8 +24,8 @@ async def test_templated_mailer(mailbox: typing.List[EmailMessage]) -> None:
         text_template="mail.txt",
         template_context={"hello": "world"},
     )
-    assert mailbox[0].get_payload()[0].get_content() == "Text message: world.\n"
-    assert mailbox[0].get_payload()[1].get_content() == "<b>HTML message: world</b>\n"
+    assert get_part(mailbox[0], 0).get_content() == "Text message: world.\n"
+    assert get_part(mailbox[0], 1).get_content() == "<b>HTML message: world</b>\n"
 
 
 @pytest.mark.asyncio

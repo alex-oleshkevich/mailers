@@ -314,12 +314,12 @@ class Email:
         if self.html:
             domain = str(self.id).split("@").pop()
             mime_message.add_alternative(self.html, subtype="html", charset=self.html_charset)
-            html_part = mime_message.get_payload(1 if self.text else 0)
+            html_part = typing.cast(EmailMessage, mime_message.get_payload(1 if self.text else 0))
             for inline_attachment in inline_attachments:
                 main_type, sub_type = inline_attachment.mime_type_parts
                 cid = inline_attachment.name or _randon_string(16) + "@" + domain
 
-                kwargs = {}
+                kwargs: typing.Dict[str, typing.Any] = {}
                 if isinstance(inline_attachment.body, str):
                     kwargs["subtype"] = "plain" if sub_type not in ["html", "plain"] else sub_type
                 else:
@@ -351,7 +351,7 @@ class Email:
 
         for extra_part in extra_parts:
             if extra_part.part:
-                mime_message.attach(extra_part.part)
+                mime_message.attach(typing.cast(EmailMessage, extra_part.part))
 
         return mime_message
 

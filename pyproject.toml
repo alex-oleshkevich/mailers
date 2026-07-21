@@ -1,11 +1,11 @@
 [project]
 name = "mailers"
-version = "3.3.0"
+version = "3.4.0"
 description = "Email delivery for asyncio."
 authors = [{ name = "Alex Oleshkevich", email = "alex.oleshkevich@gmail.com" }]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["asyncio", "email", "mailer", "mail"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -14,7 +14,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -29,10 +28,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-jinja2 = ["jinja2>=3.0"]
-smtp = ["aiosmtplib>=3.0"]
-dkim = ["dkimpy>=1.0"]
-css_inline = ["css-inline>=0.14"]
+jinja2 = ["jinja2>=3.1.6"]
+smtp = ["aiosmtplib>=5.1.1"]
+dkim = ["dkimpy>=1.1.8"]
+css_inline = ["css-inline>=0.21.0"]
 
 [project.urls]
 Homepage = "https://github.com/alex-oleshkevich/mailers"
@@ -52,17 +51,17 @@ module-root = ""
 
 [dependency-groups]
 dev = [
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.2.0",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
     "aiosmtpd>=1.4.6",
     "pytest-sugar>=1.1.1",
     "pytest-cov>=7.1.0",
-    "mypy>=1.19.1",
+    "mypy>=2.3.0",
     "prek>=0.4.10",
     "dkimpy>=1.1.8",
     "jinja2>=3.1.6",
-    "aiosmtplib>=4.0.2",
-    "css-inline>=0.20.2",
+    "aiosmtplib>=5.1.1",
+    "css-inline>=0.21.0",
 ]
 
 # required in case a parent directory overrides these options

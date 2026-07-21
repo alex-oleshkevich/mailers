@@ -1,14 +1,15 @@
 import re
 from email.message import EmailMessage, MIMEPart
+import typing
 from typing import Callable
 
 
-def remove_with_re(html: str):
+def remove_with_re(html: str) -> str:
     # https://stackoverflow.com/questions/28208186/how-to-remove-html-comments-using-regex-in-python
     return re.sub("(<!--.*?-->)", "", html, flags=re.DOTALL)
 
 
-def remove_with_bs4(html: str):
+def remove_with_bs4(html: str) -> str:
     from bs4 import BeautifulSoup, Comment
 
     soup = BeautifulSoup(html, "html.parser")
@@ -24,9 +25,9 @@ def remove_with_bs4(html: str):
     return str(soup)
 
 
-def update_part_inline(part: MIMEPart, callback: Callable) -> MIMEPart:
+def update_part_inline(part: MIMEPart, callback: Callable[[str], str]) -> MIMEPart:
     content = part.get_content()
-    updated_content = callback(content)
+    updated_content: typing.Union[str, bytes] = callback(content)
 
     # set_content requires a byte literal, not a string
     if isinstance(updated_content, str):
@@ -61,8 +62,8 @@ def remove_html_comments(message: EmailMessage) -> EmailMessage:
         "multipart/mixed",
         "multipart/related",
     ]:
-        for part in message.get_payload():
+        for part in message.iter_parts():
             # recurse!
-            remove_html_comments(part)  # type: ignore
+            remove_html_comments(typing.cast(EmailMessage, part))
 
     return message

@@ -1,8 +1,10 @@
 import base64
+import typing
 from email.message import EmailMessage
 
 from mailers import Email
 from mailers.preprocessors.remove_html_comments import remove_html_comments
+from tests.helpers import get_part
 
 
 def test_css_inliner_with_no_comment() -> None:
@@ -57,8 +59,8 @@ def test_css_inliner_with_multipart_message() -> None:
     message.add_alternative(html, subtype="html", charset="utf-8")
     message = remove_html_comments(message)
 
-    assert message.get_payload()[0].get_content() == '<!-- I am a comment --><p class="text">hello</p>\n'
-    assert message.get_payload()[1].get_content() == '<p class="text">hello</p>\n'
+    assert get_part(message, 0).get_content() == '<!-- I am a comment --><p class="text">hello</p>\n'
+    assert get_part(message, 1).get_content() == '<p class="text">hello</p>\n'
 
 
 def test_css_inliner_with_multipart_with_attachments_message() -> None:
@@ -68,10 +70,9 @@ def test_css_inliner_with_multipart_with_attachments_message() -> None:
     message = email.build()
 
     message = remove_html_comments(message)
-    assert (
-        message.get_payload()[0].get_payload()[0].get_content() == '<!-- I am a comment --><p class="text">hello</p>\n'
-    )
+    assert get_part(get_part(message, 0), 0).get_content() == '<!-- I am a comment --><p class="text">hello</p>\n'
 
-    assert message.get_payload()[0].get_payload()[1].get_content() == '<p class="text">hello</p>\n'
+    assert get_part(get_part(message, 0), 1).get_content() == '<p class="text">hello</p>\n'
 
-    assert base64.b64decode(message.get_payload(1).get_payload()) == html.encode()
+    payload = typing.cast(str, get_part(message, 1).get_payload())
+    assert base64.b64decode(payload) == html.encode()

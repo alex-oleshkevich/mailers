@@ -9,6 +9,7 @@ from email.mime.base import MIMEBase
 
 from mailers.exceptions import InvalidBodyError
 from mailers.message import Email
+from tests.helpers import get_part
 
 
 def test_email_subject(email: Email) -> None:
@@ -173,8 +174,8 @@ def test_generates_attachments_only_message() -> None:
     mime_message = email.build()
     assert mime_message.get_content_type() == "multipart/mixed"
     assert mime_message.is_multipart() is True
-    assert mime_message.get_payload()[0].get_content() == b"one"
-    assert mime_message.get_payload()[1].get_content() == b"two"
+    assert get_part(mime_message, 0).get_content() == b"one"
+    assert get_part(mime_message, 1).get_content() == b"two"
 
 
 def test_generates_text_and_html_message() -> None:
@@ -191,10 +192,10 @@ def test_generates_text_and_html_message() -> None:
     assert mime_message["To"] == "root@localhost"
     assert mime_message["X-Custom"] == "x-value"
     assert mime_message.get_content_type() == "multipart/alternative"
-    assert mime_message.get_payload()[0].get_content_type() == "text/plain"
-    assert mime_message.get_payload()[0].get_payload() == "Text message.\n"
-    assert mime_message.get_payload()[1].get_content_type() == "text/html"
-    assert mime_message.get_payload()[1].get_payload() == "HTML message.\n"
+    assert get_part(mime_message, 0).get_content_type() == "text/plain"
+    assert get_part(mime_message, 0).get_payload() == "Text message.\n"
+    assert get_part(mime_message, 1).get_content_type() == "text/html"
+    assert get_part(mime_message, 1).get_payload() == "HTML message.\n"
 
 
 def test_generates_text_and_html_and_related_message() -> None:
@@ -213,14 +214,14 @@ def test_generates_text_and_html_and_related_message() -> None:
     assert mime_message["X-Custom"] == "x-value"
     assert mime_message.get_content_type() == "multipart/alternative"
 
-    text_part = mime_message.get_payload()[0]
+    text_part = get_part(mime_message, 0)
     assert text_part.get_content_type() == "text/plain"
 
-    html_part = mime_message.get_payload()[1]
+    html_part = get_part(mime_message, 1)
     assert html_part.get_content_type() == "multipart/related"
-    assert html_part.get_payload()[0].get_content_type() == "text/html"
-    assert html_part.get_payload()[1].get_content_type() == "application/octet-stream"
-    assert html_part.get_payload()[1].get_content() == b"CONTENT"
+    assert get_part(html_part, 0).get_content_type() == "text/html"
+    assert get_part(html_part, 1).get_content_type() == "application/octet-stream"
+    assert get_part(html_part, 1).get_content() == b"CONTENT"
 
 
 def test_generates_html_and_related_message() -> None:
@@ -238,11 +239,11 @@ def test_generates_html_and_related_message() -> None:
     assert mime_message["X-Custom"] == "x-value"
     assert mime_message.get_content_type() == "multipart/alternative"
 
-    html_part = mime_message.get_payload()[0]
+    html_part = get_part(mime_message, 0)
     assert html_part.get_content_type() == "multipart/related"
-    assert html_part.get_payload()[0].get_content_type() == "text/html"
-    assert html_part.get_payload()[1].get_content_type() == "application/octet-stream"
-    assert html_part.get_payload()[1].get_content() == b"CONTENT"
+    assert get_part(html_part, 0).get_content_type() == "text/html"
+    assert get_part(html_part, 1).get_content_type() == "application/octet-stream"
+    assert get_part(html_part, 1).get_content() == b"CONTENT"
 
 
 def test_attach_text() -> None:
@@ -250,7 +251,7 @@ def test_attach_text() -> None:
     email.attach("Hello")
 
     mime_message = email.build()
-    part: EmailMessage = mime_message.get_payload()[0]
+    part = get_part(mime_message, 0)
     assert part.get_content() == b"Hello"
     assert part.get_content_type() == "application/octet-stream"
     assert part.get_filename() is None
@@ -261,7 +262,7 @@ def test_attach_binary() -> None:
     email.attach(b"Hello")
 
     mime_message = email.build()
-    part: EmailMessage = mime_message.get_payload()[0]
+    part = get_part(mime_message, 0)
     assert part.get_content() == b"Hello"
     assert part.get_content_type() == "application/octet-stream"
     assert part.get_filename() is None
@@ -272,7 +273,7 @@ def test_attach_text_with_filename_and_type() -> None:
     email.attach("Hello", "file.html", "text/html")
 
     mime_message = email.build()
-    part: EmailMessage = mime_message.get_payload()[0]
+    part = get_part(mime_message, 0)
     assert part.get_content() == "Hello"
     assert part.get_content_type() == "text/html"
     assert part.get_filename() == "file.html"
@@ -283,7 +284,7 @@ def test_attach_binary_with_filename_and_type() -> None:
     email.attach(b"Hello", "file.html", "application/octet-stream")
 
     mime_message = email.build()
-    part: EmailMessage = mime_message.get_payload()[0]
+    part = get_part(mime_message, 0)
     assert part.get_content() == b"Hello"
     assert part.get_content_type() == "application/octet-stream"
     assert part.get_filename() == "file.html"
@@ -299,7 +300,7 @@ async def test_attach_from_path() -> None:
         await email.attach_from_path(f.name)
 
         mime_message = email.build()
-        part: EmailMessage = mime_message.get_payload()[0]
+        part = get_part(mime_message, 0)
         assert part.get_content() == "Hello"
         assert part.get_content_type() == "text/plain"
         assert part.get_filename() == os.path.basename(f.name)
@@ -308,7 +309,7 @@ async def test_attach_from_path() -> None:
         await email.attach_from_path(f.name, "file.html", "text/html")
 
         mime_message = email.build()
-        part = mime_message.get_payload()[0]
+        part = get_part(mime_message, 0)
         assert part.get_content() == "Hello"
         assert part.get_content_type() == "text/html"
         assert part.get_filename() == "file.html"
@@ -323,7 +324,7 @@ def test_attach_from_path_sync() -> None:
         email.attach_from_path_sync(f.name)
 
         mime_message = email.build()
-        part: EmailMessage = mime_message.get_payload()[0]
+        part = get_part(mime_message, 0)
         assert part.get_content() == "Hello"
         assert part.get_content_type() == "text/plain"
         assert part.get_filename() == os.path.basename(f.name)
@@ -332,7 +333,7 @@ def test_attach_from_path_sync() -> None:
         email.attach_from_path_sync(f.name, "file.html", "text/html")
 
         mime_message = email.build()
-        part = mime_message.get_payload()[0]
+        part = get_part(mime_message, 0)
         assert part.get_content() == "Hello"
         assert part.get_content_type() == "text/html"
         assert part.get_filename() == "file.html"
@@ -343,8 +344,8 @@ def test_embed_text() -> None:
     email.embed("Hello")
 
     mime_message = email.build()
-    html_part: EmailMessage = mime_message.get_payload()[0]
-    inline_part: EmailMessage = html_part.get_payload()[1]
+    html_part = get_part(mime_message, 0)
+    inline_part = get_part(html_part, 1)
 
     assert inline_part.get_content() == "Hello\n"
     assert inline_part.get_content_type() == "text/plain"
@@ -356,8 +357,8 @@ def test_embed_binary() -> None:
     email.embed(b"Hello")
 
     mime_message = email.build()
-    html_part: EmailMessage = mime_message.get_payload()[0]
-    inline_part: EmailMessage = html_part.get_payload()[1]
+    html_part = get_part(mime_message, 0)
+    inline_part = get_part(html_part, 1)
 
     assert inline_part.get_content() == b"Hello"
     assert inline_part.get_content_type() == "application/octet-stream"
@@ -369,8 +370,8 @@ def test_embed_text_with_filename_and_type() -> None:
     email.embed('"Hello"', "file.json", "application/json")
 
     mime_message = email.build()
-    html_part: EmailMessage = mime_message.get_payload()[0]
-    inline_part: EmailMessage = html_part.get_payload()[1]
+    html_part = get_part(mime_message, 0)
+    inline_part = get_part(html_part, 1)
 
     assert inline_part.get_content() == '"Hello"\n'
     assert inline_part.get_content_type() == "text/plain"
@@ -382,8 +383,8 @@ def test_embed_binary_with_filename_and_type() -> None:
     email.embed(b'"Hello"', "file.json", "application/json")
 
     mime_message = email.build()
-    html_part: EmailMessage = mime_message.get_payload()[0]
-    inline_part: EmailMessage = html_part.get_payload()[1]
+    html_part = get_part(mime_message, 0)
+    inline_part = get_part(html_part, 1)
 
     assert inline_part.get_content() == b'"Hello"'
     assert inline_part.get_content_type() == "application/json"
@@ -400,8 +401,8 @@ async def test_embed_from_path() -> None:
         await email.embed_from_path(f.name)
 
         mime_message = email.build()
-        html_part: EmailMessage = mime_message.get_payload()[0]
-        inline_part: EmailMessage = html_part.get_payload()[1]
+        html_part = get_part(mime_message, 0)
+        inline_part = get_part(html_part, 1)
         assert inline_part.get_content() == "Hello\n"
         assert inline_part.get_content_type() == "text/plain"
         assert inline_part.get_filename() == os.path.basename(f.name)
@@ -417,8 +418,8 @@ async def test_embed_from_path_with_filename_and_type() -> None:
         await email.embed_from_path(f.name, "file.html", "text/html")
 
         mime_message = email.build()
-        html_part: EmailMessage = mime_message.get_payload()[0]
-        inline_part: EmailMessage = html_part.get_payload()[1]
+        html_part = get_part(mime_message, 0)
+        inline_part = get_part(html_part, 1)
         assert inline_part.get_content() == "Hello\n"
         assert inline_part.get_content_type() == "text/html"
         assert inline_part.get_filename() == "file.html"
@@ -433,8 +434,8 @@ def test_embed_from_path_sync() -> None:
         email.embed_from_path_sync(f.name)
 
         mime_message = email.build()
-        html_part: EmailMessage = mime_message.get_payload()[0]
-        inline_part: EmailMessage = html_part.get_payload()[1]
+        html_part = get_part(mime_message, 0)
+        inline_part = get_part(html_part, 1)
         assert inline_part.get_content() == "Hello\n"
         assert inline_part.get_content_type() == "text/plain"
         assert inline_part.get_filename() == os.path.basename(f.name)
@@ -448,7 +449,7 @@ def test_attach_part() -> None:
     email.attach_part(custom_part)
 
     mime_message = email.build()
-    part: EmailMessage = mime_message.get_payload()[0]
+    part = get_part(mime_message, 0)
     assert part.get_payload() == "CONTENT"
 
 
