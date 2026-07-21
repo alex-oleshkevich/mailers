@@ -27,7 +27,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.8"
-aiosmtplib = { version = "^3.0", optional = true }
+aiosmtplib = { version = "^5.1.1", optional = true }
 dkimpy = { version = "^1.0", optional = true }
 anyio = ">=3.7.1,<5"
 jinja2 = { version = "^3.0", optional = true }
